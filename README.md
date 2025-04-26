@@ -1,4 +1,5 @@
-# Notes API - Node.js with Express and NoSQL Databases
+Notes API: Node.js with Express and NoSQL Databases
+=
 
 A RESTful API for managing text notes, built with Node.js, Express, and NoSQL databases. The application follows a database-agnostic architecture, allowing for easy switching between database vendors (currently supports CouchDB and MongoDB).
 
@@ -14,7 +15,7 @@ A RESTful API for managing text notes, built with Node.js, Express, and NoSQL da
 
 ## Architecture
 
-The application follows a layered architecture with clear separation of concerns:
+The application follows a layered architecture with a clear separation of concerns:
 
 1. **Model Layer**: Database-agnostic data models
 2. **Repository Layer**: Interface for data access with specific implementations
@@ -24,11 +25,15 @@ This design allows for easy switching between database vendors by implementing a
 
 ## Prerequisites
 
-- Node.js (v14 or higher)
+These are the versions this sample app is coming with:
+
+- Node.js (v22 or higher)
 - npm or pnpm
 - One of the following databases:
   - CouchDB (v3.0 or higher)
-  - MongoDB (v4.0 or higher)
+  - MongoDB (v7.0 or higher)
+
+Stable work on lower versions is not guaranteed.
 
 ## Installation
 
