@@ -1,0 +1,24 @@
+{
+  "name": "nodejs-simple-notes-app",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node src/notes-api-server.js"
+  },
+  "keywords": [],
+  "author": "Vadim Starichkov <starichkovva@gmail.com>",
+  "license": "MIT",
+  "description": "Example of Node.js simple HTTP server",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/starichkov/nodejs-simple-notes-app.git"
+  },
+  "dependencies": {
+    "express": "^5.0.1",
+    "nano": "^10.1.2",
+    "dotenv": "^16.3.1",
+    "mongoose": "^8.0.0"
+  }
+}
