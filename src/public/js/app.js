@@ -52,11 +52,14 @@ function displayNotes(notes) {
             <h3>${escapeHtml(note.title)}</h3>
             <p>${escapeHtml(note.content)}</p>
             <div class="note-actions">
-                <button class="btn btn-secondary edit-btn" onclick="openEditNoteModal('${note.id}')">Edit</button>
-                <button class="btn btn-danger delete-btn" onclick="deleteNote('${note.id}')">Delete</button>
+                <button class="btn btn-secondary edit-btn" data-id="${note.id}">Edit</button>
+                <button class="btn btn-danger delete-btn" data-id="${note.id}">Delete</button>
             </div>
         </div>
     `).join('');
+
+    // Add event listeners using event delegation
+    notesContainer.addEventListener('click', handleNoteActions);
 }
 
 // Open modal for creating a new note
@@ -65,7 +68,7 @@ function openCreateNoteModal() {
     noteIdInput.value = '';
     noteTitleInput.value = '';
     noteContentInput.value = '';
-    noteModal.style.display = 'block';
+    noteModal.classList.add('modal-visible');
 }
 
 // Open modal for editing an existing note
@@ -81,7 +84,7 @@ async function openEditNoteModal(id) {
         noteIdInput.value = note.id;
         noteTitleInput.value = note.title;
         noteContentInput.value = note.content;
-        noteModal.style.display = 'block';
+        noteModal.classList.add('modal-visible');
     } catch (error) {
         console.error('Error fetching note for edit:', error);
         alert(`Error: ${error.message}`);
@@ -90,7 +93,7 @@ async function openEditNoteModal(id) {
 
 // Close the modal
 function closeModal() {
-    noteModal.style.display = 'none';
+    noteModal.classList.remove('modal-visible');
 }
 
 // Handle form submission (create or update note)
@@ -153,6 +156,22 @@ async function deleteNote(id) {
     } catch (error) {
         console.error('Error deleting note:', error);
         alert(`Error: ${error.message}`);
+    }
+}
+
+// Handle clicks on note action buttons using event delegation
+function handleNoteActions(e) {
+    const target = e.target;
+
+    // Check if the clicked element is a button with a data-id attribute
+    if (target.tagName === 'BUTTON' && target.dataset.id) {
+        const noteId = target.dataset.id;
+
+        if (target.classList.contains('edit-btn')) {
+            openEditNoteModal(noteId);
+        } else if (target.classList.contains('delete-btn')) {
+            deleteNote(noteId);
+        }
     }
 }
 

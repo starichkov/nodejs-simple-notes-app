@@ -1,4 +1,6 @@
 import express from 'express';
+import helmet from 'helmet';
+import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
 import {fileURLToPath} from 'url';
@@ -42,6 +44,9 @@ if (DB_VENDOR === 'mongodb') {
 // Initialize the application
 async function initializeApp() {
     try {
+        app.use(helmet());
+        app.use(cors());
+
         // Middleware for parsing JSON bodies
         app.use(express.json());
 
