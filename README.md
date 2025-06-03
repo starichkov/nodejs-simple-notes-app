@@ -1,6 +1,6 @@
-![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/starichkov/nodejs-simple-notes-app/node.js.yml?style=for-the-badge)
-![Codecov](https://img.shields.io/codecov/c/github/starichkov/nodejs-simple-notes-app?style=for-the-badge)
-![GitHub License](https://img.shields.io/github/license/starichkov/nodejs-simple-notes-app?style=for-the-badge)
+[![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/starichkov/nodejs-simple-notes-app/node.js.yml?style=for-the-badge)](https://github.com/starichkov/nodejs-simple-notes-app/actions/workflows/node.js.yml)
+[![Codecov](https://img.shields.io/codecov/c/github/starichkov/nodejs-simple-notes-app?style=for-the-badge)](https://codecov.io/gh/starichkov/nodejs-simple-notes-app)
+[![GitHub License](https://img.shields.io/github/license/starichkov/nodejs-simple-notes-app?style=for-the-badge)](https://github.com/starichkov/nodejs-simple-notes-app/blob/main/LICENSE.md)
 
 Notes API: Node.js with Express and NoSQL Databases
 =
