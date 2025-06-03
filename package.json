@@ -4,7 +4,7 @@
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "start": "node src/notes-api-server.js"
   },
   "keywords": [],
@@ -22,5 +22,9 @@
     "helmet": "^8.1.0",
     "mongoose": "^8.15.1",
     "nano": "^10.1.4"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "supertest": "^6.3.4"
   }
 }
