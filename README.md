@@ -27,11 +27,11 @@ This design allows for easy switching between database vendors by implementing a
 
 These are the versions this sample app is coming with:
 
-- Node.js (v22 or higher)
+- Node.js (v22.16 or higher)
 - npm or pnpm
 - One of the following databases:
-  - CouchDB (v3.0 or higher)
-  - MongoDB (v7.0 or higher)
+  - CouchDB (v3.4.3 or higher)
+  - MongoDB (v7.0.20 or higher)
 
 Stable work on lower versions is not guaranteed.
 
