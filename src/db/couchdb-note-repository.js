@@ -1,6 +1,6 @@
 import nano from 'nano';
-import { NoteRepository } from './note-repository.js';
-import { Note } from '../models/note.js';
+import {NoteRepository} from './note-repository.js';
+import {Note} from '../models/note.js';
 
 /**
  * CouchDB implementation of the NoteRepository interface.
@@ -30,23 +30,24 @@ export class CouchDbNoteRepository extends NoteRepository {
                 await this.client.db.create(this.dbName);
             }
             this.db = this.client.use(this.dbName);
-            
+
             // Create a design document for views if it doesn't exist
             try {
                 await this.db.get('_design/notes');
             } catch (error) {
                 if (error.statusCode === 404) {
-                    await this.db.insert({
+                    const designDoc = {
+                        _id: '_design/notes',
                         views: {
                             all: {
-                                map: function(doc) {
-                                    if (doc.type === 'note') {
-                                        emit(doc._id, null);
-                                    }
-                                }.toString()
+                                // Define the function as a plain string from the start
+                                map: "function(doc) { if (doc.type === 'note') { emit(doc._id, null); } }"
                             }
-                        }
-                    }, '_design/notes');
+                        },
+                        // It's good practice to explicitly add the language
+                        language: 'javascript'
+                    };
+                    await this.db.insert(designDoc);
                 } else {
                     throw error;
                 }
@@ -63,8 +64,21 @@ export class CouchDbNoteRepository extends NoteRepository {
      */
     async findAll() {
         try {
-            const result = await this.db.view('notes', 'all', { include_docs: true });
-            return result.rows.map(row => {
+            if (!this.db) {
+                await this.init();
+            }
+
+            const result = await this.db.view('notes', 'all', {update: true, include_docs: true});
+            if (!result.rows) {
+                console.log('No rows in view result, returning empty array');
+                return [];
+            }
+
+            const notes = result.rows.map(row => {
+                if (!row.doc) {
+                    console.log('Row without doc:', row);
+                    return null;
+                }
                 const doc = row.doc;
                 return Note.fromObject({
                     id: doc._id,
@@ -73,7 +87,8 @@ export class CouchDbNoteRepository extends NoteRepository {
                     createdAt: doc.createdAt,
                     updatedAt: doc.updatedAt
                 });
-            });
+            }).filter(note => note !== null);
+            return notes;
         } catch (error) {
             console.error('Failed to find all notes:', error);
             throw error;
@@ -119,9 +134,9 @@ export class CouchDbNoteRepository extends NoteRepository {
                 createdAt: now.toISOString(),
                 updatedAt: now.toISOString()
             };
-            
+
             const result = await this.db.insert(doc);
-            
+
             return Note.fromObject({
                 id: result.id,
                 title: doc.title,
@@ -143,9 +158,20 @@ export class CouchDbNoteRepository extends NoteRepository {
      */
     async update(id, note) {
         try {
-            // Get the current document to get the _rev value
-            const currentDoc = await this.db.get(id);
-            
+
+            // Get the current document
+            let currentDoc;
+            try {
+                currentDoc = await this.db.get(id);
+                console.log('Current document:', currentDoc);
+            } catch (error) {
+                if (error.statusCode === 404) {
+                    console.log(`Note ${id} not found`);
+                    return null;
+                }
+                throw error;
+            }
+
             const now = new Date();
             const updatedDoc = {
                 _id: id,
@@ -156,21 +182,21 @@ export class CouchDbNoteRepository extends NoteRepository {
                 createdAt: currentDoc.createdAt,
                 updatedAt: now.toISOString()
             };
-            
-            await this.db.insert(updatedDoc);
-            
+
+            const result = await this.db.insert(updatedDoc);
+
             return Note.fromObject({
                 id: id,
-                title: updatedDoc.title,
-                content: updatedDoc.content,
-                createdAt: updatedDoc.createdAt,
+                title: note.title,
+                content: note.content,
+                createdAt: currentDoc.createdAt,
                 updatedAt: updatedDoc.updatedAt
             });
         } catch (error) {
-            if (error.statusCode === 404) {
-                return null;
-            }
             console.error(`Failed to update note with ID ${id}:`, error);
+            if (error.statusCode === 409) {
+                throw new Error('Document was modified concurrently. Please try again.');
+            }
             throw error;
         }
     }
@@ -182,15 +208,29 @@ export class CouchDbNoteRepository extends NoteRepository {
      */
     async delete(id) {
         try {
-            // Get the current document to get the _rev value
-            const doc = await this.db.get(id);
-            await this.db.destroy(id, doc._rev);
+
+            // Get the current document
+            let doc;
+            try {
+                doc = await this.db.get(id);
+                console.log('Document to delete:', doc);
+            } catch (error) {
+                if (error.statusCode === 404) {
+                    console.log(`Note ${id} not found`);
+                    return false;
+                }
+                throw error;
+            }
+
+            const result = await this.db.destroy(id, doc._rev);
+            console.log('Delete result:', result);
             return true;
         } catch (error) {
+            console.error(`Failed to delete note with ID ${id}:`, error);
             if (error.statusCode === 404) {
+                console.log(`Note ${id} not found`);
                 return false;
             }
-            console.error(`Failed to delete note with ID ${id}:`, error);
             throw error;
         }
     }

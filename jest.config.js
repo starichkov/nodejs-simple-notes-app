@@ -1,5 +1,6 @@
 export default {
   transform: {},
+  testTimeout: 60000,
   moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
@@ -13,10 +14,10 @@ export default {
   coverageDirectory: "coverage",
   coverageThreshold: {
     global: {
-      branches: 33,
-      functions: 23,
-      lines: 22,
-      statements: 22
+      branches: 38,
+      functions: 45,
+      lines: 40,
+      statements: 40
     }
   },
   verbose: true
