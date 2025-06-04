@@ -116,8 +116,8 @@ export class MongoDbNoteRepository extends NoteRepository {
                 id: savedNote._id.toString(),
                 title: savedNote.title,
                 content: savedNote.content,
-                createdAt: savedNote.createdAt,
-                updatedAt: savedNote.updatedAt
+                createdAt: new Date(savedNote.createdAt),
+                updatedAt: new Date(savedNote.updatedAt)
             });
         } catch (error) {
             console.error('Failed to create note:', error);

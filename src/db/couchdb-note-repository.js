@@ -80,8 +80,8 @@ export class CouchDbNoteRepository extends NoteRepository {
                     id: doc._id,
                     title: doc.title,
                     content: doc.content,
-                    createdAt: doc.createdAt,
-                    updatedAt: doc.updatedAt
+                    createdAt: new Date(doc.createdAt),
+                    updatedAt: new Date(doc.updatedAt)
                 });
             }).filter(note => note !== null);
             return notes;
@@ -103,8 +103,8 @@ export class CouchDbNoteRepository extends NoteRepository {
                 id: doc._id,
                 title: doc.title,
                 content: doc.content,
-                createdAt: doc.createdAt,
-                updatedAt: doc.updatedAt
+                createdAt: new Date(doc.createdAt),
+                updatedAt: new Date(doc.updatedAt)
             });
         } catch (error) {
             if (error.statusCode === 404) {
@@ -137,8 +137,8 @@ export class CouchDbNoteRepository extends NoteRepository {
                 id: result.id,
                 title: doc.title,
                 content: doc.content,
-                createdAt: doc.createdAt,
-                updatedAt: doc.updatedAt
+                createdAt: new Date(doc.createdAt),
+                updatedAt: new Date(doc.updatedAt)
             });
         } catch (error) {
             console.error('Failed to create note:', error);
@@ -185,8 +185,8 @@ export class CouchDbNoteRepository extends NoteRepository {
                 id: id,
                 title: note.title,
                 content: note.content,
-                createdAt: currentDoc.createdAt,
-                updatedAt: updatedDoc.updatedAt
+                createdAt: new Date(currentDoc.createdAt),
+                updatedAt: new Date(updatedDoc.updatedAt)
             });
         } catch (error) {
             console.error(`Failed to update note with ID ${id}:`, error);
@@ -204,29 +204,23 @@ export class CouchDbNoteRepository extends NoteRepository {
      */
     async delete(id) {
         try {
-
             // Get the current document
             let doc;
             try {
                 doc = await this.db.get(id);
-                console.log('Document to delete:', doc);
             } catch (error) {
                 if (error.statusCode === 404) {
-                    console.log(`Note ${id} not found`);
                     return false;
                 }
                 throw error;
             }
-
-            const result = await this.db.destroy(id, doc._rev);
-            console.log('Delete result:', result);
+            await this.db.destroy(id, doc._rev);
             return true;
         } catch (error) {
-            console.error(`Failed to delete note with ID ${id}:`, error);
             if (error.statusCode === 404) {
-                console.log(`Note ${id} not found`);
                 return false;
             }
+            console.error(`Failed to delete note with ID ${id}:`, error);
             throw error;
         }
     }
