@@ -84,6 +84,49 @@ describe('Notes Routes', () => {
       expect(response.body[0].title).toBe('Note 1');
       expect(response.body[1].title).toBe('Note 2');
     });
+
+    test('should handle repository errors', async () => {
+      // Mock repository to throw an error
+      repository.findAll = async () => {
+        throw new Error('Database error');
+      };
+
+      const response = await request(app).get('/api/notes');
+      
+      expect(response.status).toBe(500);
+      expect(response.body.error).toBe('Failed to retrieve notes');
+    });
+  });
+
+  describe('GET /api/notes/:id', () => {
+    test('should return a note by id', async () => {
+      const note = await repository.create({ title: 'Test Note', content: 'Test Content' });
+      
+      const response = await request(app).get(`/api/notes/${note.id}`);
+      
+      expect(response.status).toBe(200);
+      expect(response.body.id).toBe(note.id);
+      expect(response.body.title).toBe('Test Note');
+      expect(response.body.content).toBe('Test Content');
+    });
+
+    test('should return 404 for non-existent note', async () => {
+      const response = await request(app).get('/api/notes/999');
+      
+      expect(response.status).toBe(404);
+      expect(response.body.error).toBe('Note not found');
+    });
+
+    test('should handle repository errors', async () => {
+      repository.findById = async () => {
+        throw new Error('Database error');
+      };
+
+      const response = await request(app).get('/api/notes/1');
+      
+      expect(response.status).toBe(500);
+      expect(response.body.error).toBe('Failed to retrieve note');
+    });
   });
 
   describe('POST /api/notes', () => {
@@ -101,14 +144,134 @@ describe('Notes Routes', () => {
       expect(response.body.id).toBeDefined();
     });
 
-    test('should return 400 if title or content is missing', async () => {
+    test('should return 400 if title is missing', async () => {
+      const response = await request(app)
+        .post('/api/notes')
+        .send({ content: 'Missing Title' })
+        .set('Content-Type', 'application/json');
+      
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('Title and content are required');
+    });
+
+    test('should return 400 if content is missing', async () => {
       const response = await request(app)
         .post('/api/notes')
         .send({ title: 'Missing Content' })
         .set('Content-Type', 'application/json');
       
       expect(response.status).toBe(400);
-      expect(response.body.error).toBeDefined();
+      expect(response.body.error).toBe('Title and content are required');
+    });
+
+    test('should handle repository errors', async () => {
+      repository.create = async () => {
+        throw new Error('Database error');
+      };
+
+      const response = await request(app)
+        .post('/api/notes')
+        .send({ title: 'Test', content: 'Test' })
+        .set('Content-Type', 'application/json');
+      
+      expect(response.status).toBe(500);
+      expect(response.body.error).toBe('Failed to create note');
+    });
+  });
+
+  describe('PUT /api/notes/:id', () => {
+    test('should update an existing note', async () => {
+      const note = await repository.create({ title: 'Original', content: 'Original' });
+      const updateData = { title: 'Updated', content: 'Updated' };
+      
+      const response = await request(app)
+        .put(`/api/notes/${note.id}`)
+        .send(updateData)
+        .set('Content-Type', 'application/json');
+      
+      expect(response.status).toBe(200);
+      expect(response.body.title).toBe(updateData.title);
+      expect(response.body.content).toBe(updateData.content);
+    });
+
+    test('should return 404 for non-existent note', async () => {
+      const response = await request(app)
+        .put('/api/notes/999')
+        .send({ title: 'Test', content: 'Test' })
+        .set('Content-Type', 'application/json');
+      
+      expect(response.status).toBe(404);
+      expect(response.body.error).toBe('Note not found');
+    });
+
+    test('should return 400 if title is missing', async () => {
+      const note = await repository.create({ title: 'Original', content: 'Original' });
+      
+      const response = await request(app)
+        .put(`/api/notes/${note.id}`)
+        .send({ content: 'Missing Title' })
+        .set('Content-Type', 'application/json');
+      
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('Title and content are required');
+    });
+
+    test('should return 400 if content is missing', async () => {
+      const note = await repository.create({ title: 'Original', content: 'Original' });
+      
+      const response = await request(app)
+        .put(`/api/notes/${note.id}`)
+        .send({ title: 'Missing Content' })
+        .set('Content-Type', 'application/json');
+      
+      expect(response.status).toBe(400);
+      expect(response.body.error).toBe('Title and content are required');
+    });
+
+    test('should handle repository errors', async () => {
+      repository.update = async () => {
+        throw new Error('Database error');
+      };
+
+      const response = await request(app)
+        .put('/api/notes/1')
+        .send({ title: 'Test', content: 'Test' })
+        .set('Content-Type', 'application/json');
+      
+      expect(response.status).toBe(500);
+      expect(response.body.error).toBe('Failed to update note');
+    });
+  });
+
+  describe('DELETE /api/notes/:id', () => {
+    test('should delete an existing note', async () => {
+      const note = await repository.create({ title: 'To Delete', content: 'To Delete' });
+      
+      const response = await request(app).delete(`/api/notes/${note.id}`);
+      
+      expect(response.status).toBe(204);
+      
+      // Verify note is deleted
+      const getResponse = await request(app).get(`/api/notes/${note.id}`);
+      expect(getResponse.status).toBe(404);
+    });
+
+    test('should return 404 for non-existent note', async () => {
+      const response = await request(app).delete('/api/notes/999');
+      
+      expect(response.status).toBe(404);
+      expect(response.body.error).toBe('Note not found');
+    });
+
+    test('should handle repository errors', async () => {
+      repository.delete = async () => {
+        throw new Error('Database error');
+      };
+
+      const response = await request(app).delete('/api/notes/1');
+      
+      expect(response.status).toBe(500);
+      expect(response.body.error).toBe('Failed to delete note');
     });
   });
 });
