@@ -64,10 +64,6 @@ export class CouchDbNoteRepository extends NoteRepository {
      */
     async findAll() {
         try {
-            if (!this.db) {
-                await this.init();
-            }
-
             const result = await this.db.view('notes', 'all', {update: true, include_docs: true});
             if (!result.rows) {
                 console.log('No rows in view result, returning empty array');

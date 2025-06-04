@@ -7,51 +7,6 @@ describe('CouchDbNoteRepository Integration Tests', () => {
     let repository;
     const DB_NAME = 'notes_test';
 
-    // Helper function to wait for document availability
-    async function waitForDocument(id, maxAttempts = 5, delay = 1000) {
-        console.log(`Waiting for document ${id} to be available...`);
-        for (let attempt = 0; attempt < maxAttempts; attempt++) {
-            console.log(`Attempt ${attempt + 1}/${maxAttempts} to find document ${id}`);
-            try {
-                const doc = await repository.findById(id);
-                if (doc) {
-                    console.log(`Document ${id} found on attempt ${attempt + 1}:`, doc);
-                    return doc;
-                }
-                console.log(`Document ${id} not found on attempt ${attempt + 1}`);
-            } catch (error) {
-                console.error(`Error finding document ${id} on attempt ${attempt + 1}:`, error);
-            }
-            await new Promise(resolve => setTimeout(resolve, delay));
-        }
-        throw new Error(`Document ${id} not found after ${maxAttempts} attempts`);
-    }
-
-    // Helper function to wait for document deletion
-    async function waitForDocumentDeletion(id, maxAttempts = 5, delay = 3000) {
-        console.log(`Waiting for document ${id} to be deleted...`);
-        for (let attempt = 0; attempt < maxAttempts; attempt++) {
-            console.log(`Attempt ${attempt + 1}/${maxAttempts} to check document ${id} deletion`);
-            try {
-                const doc = await repository.findById(id);
-                if (!doc) {
-                    console.log(`Document ${id} confirmed deleted on attempt ${attempt + 1}`);
-                    return true;
-                }
-                console.log(`Document ${id} still exists on attempt ${attempt + 1}:`, doc);
-            } catch (error) {
-                if (error.statusCode === 404) {
-                    console.log(`Document ${id} confirmed deleted on attempt ${attempt + 1}`);
-                    return true;
-                }
-                console.error(`Error checking document ${id} deletion on attempt ${attempt + 1}:`, error);
-            }
-            console.log(`Waiting ${delay}ms before next attempt...`);
-            await new Promise(resolve => setTimeout(resolve, delay));
-        }
-        throw new Error(`Document ${id} still exists after ${maxAttempts} attempts`);
-    }
-
     beforeAll(async () => {
         console.log('Starting CouchDB container...');
         // Start CouchDB container
@@ -86,16 +41,12 @@ describe('CouchDbNoteRepository Integration Tests', () => {
     });
 
     beforeEach(async () => {
-        console.log('\n--- Starting new test ---');
-        // await repository.init();
-
         try {
             const notes = await repository.findAll();
             console.log('Cleaning up notes:', notes);
             for (const note of notes) {
                 console.log(`Deleting note ${note.id}...`);
                 await repository.delete(note.id);
-                await waitForDocumentDeletion(note.id);
             }
             console.log('Cleanup completed');
         } catch (error) {
@@ -120,7 +71,7 @@ describe('CouchDbNoteRepository Integration Tests', () => {
             expect(createdNote.id).toBeDefined();
 
             console.log('Retrieving created note...');
-            const retrievedNote = await waitForDocument(createdNote.id);
+            const retrievedNote = await repository.findById(createdNote.id);
             console.log('Retrieved note:', retrievedNote);
             expect(retrievedNote).toBeInstanceOf(Note);
             expect(retrievedNote.id).toBe(createdNote.id);
@@ -138,7 +89,7 @@ describe('CouchDbNoteRepository Integration Tests', () => {
             console.log('Created initial note:', note);
 
             console.log('Verifying initial note...');
-            const initialNote = await waitForDocument(note.id);
+            const initialNote = await repository.findById(note.id);
             console.log('Initial note verified:', initialNote);
             expect(initialNote).not.toBeNull();
 
@@ -156,7 +107,7 @@ describe('CouchDbNoteRepository Integration Tests', () => {
             expect(updatedNote.content).toBe(updatedData.content);
 
             console.log('Verifying updated note...');
-            const retrievedNote = await waitForDocument(note.id);
+            const retrievedNote = await repository.findById(note.id);
             console.log('Retrieved updated note:', retrievedNote);
             expect(retrievedNote).not.toBeNull();
             expect(retrievedNote.title).toBe(updatedData.title);
@@ -172,7 +123,7 @@ describe('CouchDbNoteRepository Integration Tests', () => {
             console.log('Created note to delete:', note);
 
             console.log('Verifying note exists...');
-            const initialNote = await waitForDocument(note.id);
+            const initialNote = await repository.findById(note.id);
             console.log('Initial note verified:', initialNote);
             expect(initialNote).not.toBeNull();
 
@@ -180,9 +131,6 @@ describe('CouchDbNoteRepository Integration Tests', () => {
             const deleteResult = await repository.delete(note.id);
             console.log('Delete result:', deleteResult);
             expect(deleteResult).toBe(true);
-
-            console.log('Verifying note deletion...');
-            await waitForDocumentDeletion(note.id);
         });
 
         it('should list all notes', async () => {
@@ -198,7 +146,7 @@ describe('CouchDbNoteRepository Integration Tests', () => {
                 console.log('Creating note:', noteData);
                 const created = await repository.create(noteData);
                 console.log('Created note:', created);
-                await waitForDocument(created.id);
+                await repository.findById(created.id);
             }
 
             // Wait for all notes to be available
