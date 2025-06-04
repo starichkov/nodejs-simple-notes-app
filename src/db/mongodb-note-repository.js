@@ -24,9 +24,12 @@ export class MongoDbNoteRepository extends NoteRepository {
      */
     async init() {
         try {
-            // Connect to MongoDB
-            await mongoose.connect(`${this.url}/${this.dbName}`);
-            console.log('Connected to MongoDB');
+            // Connect to MongoDB using the provided URL and database name
+            await mongoose.connect(this.url, { dbName: this.dbName });
+            // const connectionUrl = this.url.endsWith('/') ? this.url + this.dbName : this.url + '/' + this.dbName;
+            // await mongoose.connect(connectionUrl);
+            // await mongoose.connect(`${this.url}/${this.dbName}`);
+            console.log(`Connected to MongoDB database: ${this.dbName}`);
 
             // Define the schema if it doesn't exist
             if (!this.NoteModel) {
