@@ -1,6 +1,7 @@
 import {GenericContainer} from 'testcontainers';
 import {MongoDbNoteRepository} from '../../src/db/mongodb-note-repository.js';
 import {Note} from '../../src/models/note.js';
+import mongoose from 'mongoose';
 
 describe('MongoDbNoteRepository Integration Tests', () => {
     let container;
@@ -37,6 +38,10 @@ describe('MongoDbNoteRepository Integration Tests', () => {
     afterAll(async () => {
         console.log('Stopping MongoDB container...');
         if (container) {
+            // Close the MongoDB connection first
+            await mongoose.connection.close();
+            console.log('MongoDB connection closed');
+            
             await container.stop();
             console.log('MongoDB container stopped');
         }
