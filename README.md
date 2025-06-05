@@ -146,6 +146,8 @@ Each Docker Compose setup includes:
 
 ### Automated Testing
 
+#### Local Testing Script
+
 A test script is provided to validate both setups:
 
 ```bash
@@ -162,7 +164,39 @@ chmod +x test-docker-setups.sh
 ./test-docker-setups.sh mongodb
 ```
 
-The test script will:
+#### CI/CD Validation
+
+Before committing changes, validate your setup locally:
+
+```bash
+# Quick validation (recommended before commits)
+./validate-ci.sh quick
+
+# Full integration tests
+./validate-ci.sh full
+
+# GitHub Actions workflow validation only
+./validate-ci.sh workflows-only
+```
+
+#### GitHub Actions CI
+
+Our simple CI pipeline automatically:
+- 🧪 **Runs unit tests** with coverage reporting
+- 🔧 **Tests both database backends** (CouchDB and MongoDB) with Docker Compose
+- ⚡ **Provides fast feedback** (~6-8 minutes total)
+- 🛡️ **Uses secure credentials** (generated per test run)
+
+**Single Workflow**:
+- **Build**: Unit tests + coverage → Docker Compose tests (parallel)
+- **Triggers**: PRs and pushes to main branch
+- **Simple & Fast**: Essential testing only, no complexity
+
+See [GITHUB_ACTIONS.md](GITHUB_ACTIONS.md) for detailed CI documentation.
+
+#### Test Features
+
+The test scripts will:
 - Start the specified database setup
 - Wait for services to be healthy
 - Test all API endpoints (health, CRUD operations)

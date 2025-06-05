@@ -20,16 +20,24 @@ jobs:
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
+
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v4
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
-    - run: npm ci
-    - run: npm run build --if-present
-    - name: Run tests with coverage
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Build project
+      run: npm run build --if-present
+
+    - name: Run unit tests with coverage
       run: npm run test:coverage
+
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v5
       with:
@@ -38,3 +46,55 @@ jobs:
         flags: unittests
         name: codecov
         fail_ci_if_error: true
+
+  docker-compose-tests:
+    runs-on: ubuntu-24.04
+    needs: build
+
+    strategy:
+      matrix:
+        database: [couchdb, mongodb]
+      fail-fast: false
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    - name: Configure test credentials
+      run: |
+        case "${{ matrix.database }}" in
+          couchdb)
+            echo "COUCHDB_USERNAME=ci_test_admin" >> $GITHUB_ENV
+            echo "COUCHDB_PASSWORD=ci_test_$(openssl rand -hex 12)" >> $GITHUB_ENV
+            echo "COUCHDB_DATABASE=ci_test_notes" >> $GITHUB_ENV
+            ;;
+          mongodb)
+            echo "MONGODB_USERNAME=ci_test_user" >> $GITHUB_ENV
+            echo "MONGODB_PASSWORD=ci_test_$(openssl rand -hex 12)" >> $GITHUB_ENV
+            echo "MONGODB_DATABASE=ci_test_notes" >> $GITHUB_ENV
+            ;;
+        esac
+
+    - name: Make test script executable
+      run: chmod +x test-docker-setups.sh
+
+    - name: Test ${{ matrix.database }} setup
+      timeout-minutes: 8
+      run: |
+        echo "🚀 Testing ${{ matrix.database }} setup..."
+        ./test-docker-setups.sh ${{ matrix.database }}
+
+    - name: Show logs on failure
+      if: failure()
+      run: |
+        echo "=== Container logs ==="
+        docker compose -f docker-compose.${{ matrix.database }}.yml logs || true
+
+    - name: Cleanup
+      if: always()
+      run: |
+        docker compose -f docker-compose.${{ matrix.database }}.yml down -v || true
+        docker system prune -f || true
