@@ -72,6 +72,110 @@ Stable work on lower versions is not guaranteed.
    ```
    Adjust the values according to your environment. Set `DB_VENDOR` to either `couchdb` or `mongodb` to select the database vendor.
 
+## Docker Compose Setup
+
+The application includes separate Docker Compose configurations for easy deployment with different database backends. This is the recommended way to run the application locally for development and testing.
+
+### Available Configurations
+
+- **docker-compose.couchdb.yml**: Runs the application with CouchDB
+- **docker-compose.mongodb.yml**: Runs the application with MongoDB
+
+### ⚠️ Required: Database Credentials Configuration
+
+**IMPORTANT**: For security reasons, this application requires explicit database credentials. No default passwords are provided.
+
+You **must** create a `.env` file with your own secure credentials before running any Docker Compose setup:
+
+```bash
+# Copy the template file
+cp env.template .env
+
+# Edit the .env file with your own secure credentials
+# The .env file is automatically ignored by git for security
+```
+
+Required `.env` file content:
+```env
+# MongoDB Configuration (all required)
+MONGODB_USERNAME=your_mongodb_user
+MONGODB_PASSWORD=your_secure_mongodb_password
+MONGODB_DATABASE=your_notes_database
+
+# CouchDB Configuration (all required)
+COUCHDB_USERNAME=your_couchdb_user
+COUCHDB_PASSWORD=your_secure_couchdb_password
+COUCHDB_DATABASE=your_notes_database
+```
+
+**Security Notes:**
+- Use strong, unique passwords
+- Never use default credentials like `admin/password`
+- Keep your `.env` file secure and never commit it to version control
+- The application will fail to start if any credentials are missing
+
+### Running with CouchDB
+
+```bash
+# Start the application with CouchDB
+docker compose -f docker-compose.couchdb.yml up -d
+
+# Stop the application
+docker compose -f docker-compose.couchdb.yml down
+```
+
+### Running with MongoDB
+
+```bash
+# Start the application with MongoDB
+docker compose -f docker-compose.mongodb.yml up -d
+
+# Stop the application
+docker compose -f docker-compose.mongodb.yml down
+```
+
+### Services Included
+
+Each Docker Compose setup includes:
+
+- **Database service**: Either CouchDB (port 5984) or MongoDB (port 27017)
+- **Notes application**: The Node.js API server (port 3000)
+- **Health checks**: Automatic health monitoring for both services
+- **Data persistence**: Named volumes for database data
+- **Network isolation**: Services communicate through a private network
+
+### Automated Testing
+
+A test script is provided to validate both setups:
+
+```bash
+# Make the script executable (first time only)
+chmod +x test-docker-setups.sh
+
+# Test both database setups
+./test-docker-setups.sh
+
+# Test only CouchDB setup
+./test-docker-setups.sh couchdb
+
+# Test only MongoDB setup
+./test-docker-setups.sh mongodb
+```
+
+The test script will:
+- Start the specified database setup
+- Wait for services to be healthy
+- Test all API endpoints (health, CRUD operations)
+- Verify the web UI is accessible
+- Clean up by stopping the services
+
+### Accessing the Application
+
+Once started with either setup, the application will be available at:
+- **Web UI**: http://localhost:3000
+- **API**: http://localhost:3000/api/notes
+- **Health Check**: http://localhost:3000/health
+
 ## Running the Application
 
 Start the server:

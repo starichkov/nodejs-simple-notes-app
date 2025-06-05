@@ -1,4 +1,7 @@
-FROM node:22.14-alpine3.21
+FROM node:22.16-alpine3.21
+
+# Install wget for health checks
+RUN apk add --no-cache wget
 
 # Set the working directory inside the container
 WORKDIR /app
