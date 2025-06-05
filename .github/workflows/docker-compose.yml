@@ -1,0 +1,133 @@
+name: Docker Compose CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:  # Allow manual triggering
+
+jobs:
+  docker-compose-test:
+    runs-on: ubuntu-24.04
+    
+    strategy:
+      matrix:
+        database: [couchdb, mongodb]
+      fail-fast: false  # Continue testing other databases even if one fails
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Make test script executable
+      run: chmod +x test-docker-setups.sh
+    
+    - name: Set database credentials
+      run: |
+        case "${{ matrix.database }}" in
+          couchdb)
+            echo "COUCHDB_USERNAME=ci_test_admin" >> $GITHUB_ENV
+            echo "COUCHDB_PASSWORD=ci_test_password_$(date +%s)" >> $GITHUB_ENV
+            echo "COUCHDB_DATABASE=ci_test_notes" >> $GITHUB_ENV
+            ;;
+          mongodb)
+            echo "MONGODB_USERNAME=ci_test_user" >> $GITHUB_ENV
+            echo "MONGODB_PASSWORD=ci_test_password_$(date +%s)" >> $GITHUB_ENV
+            echo "MONGODB_DATABASE=ci_test_notes" >> $GITHUB_ENV
+            ;;
+        esac
+    
+    - name: Display environment info
+      run: |
+        echo "Testing database: ${{ matrix.database }}"
+        echo "Docker version:"
+        docker --version
+        echo "Docker Compose version:"
+        docker compose version
+        echo "Available disk space:"
+        df -h
+        echo "Available memory:"
+        free -h
+    
+    - name: Clean up any existing containers
+      run: |
+        # Clean up any potentially conflicting containers/networks
+        docker container prune -f || true
+        docker network prune -f || true
+        docker volume prune -f || true
+    
+    - name: Test ${{ matrix.database }} setup
+      run: |
+        echo "🚀 Starting ${{ matrix.database }} test..."
+        ./test-docker-setups.sh ${{ matrix.database }}
+    
+    - name: Show container logs on failure
+      if: failure()
+      run: |
+        echo "=== Docker containers ==="
+        docker ps -a
+        echo "=== Docker networks ==="
+        docker network ls
+        echo "=== Docker volumes ==="
+        docker volume ls
+        
+        # Show logs for any running containers
+        for container in $(docker ps --format "{{.Names}}" 2>/dev/null || true); do
+          echo "=== Logs for $container ==="
+          docker logs "$container" || true
+        done
+    
+    - name: Clean up after test
+      if: always()
+      run: |
+        echo "🧹 Cleaning up..."
+        
+        # Stop and remove containers for this database
+        case "${{ matrix.database }}" in
+          couchdb)
+            docker compose -f docker-compose.couchdb.yml down -v --remove-orphans || true
+            ;;
+          mongodb)
+            docker compose -f docker-compose.mongodb.yml down -v --remove-orphans || true
+            ;;
+        esac
+        
+        # Additional cleanup
+        docker container prune -f || true
+        docker network prune -f || true
+        docker volume prune -f || true
+        
+        echo "✅ Cleanup completed"
+
+  # Job to verify both databases can coexist (not run simultaneously)
+  integration-test:
+    runs-on: ubuntu-24.04
+    needs: docker-compose-test
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Make test script executable
+      run: chmod +x test-docker-setups.sh
+    
+    - name: Test both databases sequentially
+      run: |
+        echo "🔄 Testing both databases in sequence..."
+        ./test-docker-setups.sh both
+    
+    - name: Show final status
+      if: always()
+      run: |
+        echo "=== Final cleanup ==="
+        docker container prune -f || true
+        docker network prune -f || true
+        docker volume prune -f || true
+        echo "✅ Integration test completed" 
