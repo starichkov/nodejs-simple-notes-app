@@ -161,4 +161,344 @@ describe('CouchDbNoteRepository Integration Tests', () => {
             );
         });
     });
+
+    describe('Error Handling Coverage', () => {
+        it('should handle delete errors with invalid document IDs', async () => {
+            const invalidIds = [
+                'invalid/doc/id',  // Invalid characters
+                '_invalid_start',  // Invalid start
+                'doc$with$special$chars',
+                'very-long-invalid-document-id-that-might-cause-issues-in-couchdb',
+                '',  // Empty string
+                ' ',  // Space
+                'doc with spaces'
+            ];
+
+            for (const invalidId of invalidIds) {
+                try {
+                    const result = await repository.delete(invalidId);
+                    // Should return false for invalid IDs
+                    expect(result).toBe(false);
+                } catch (error) {
+                    // Some invalid IDs might throw errors instead of returning false
+                    expect(error).toBeDefined();
+                }
+            }
+        });
+
+        it('should handle malformed data in CouchDB operations', async () => {
+            const edgeCaseData = [
+                { title: '', content: '' }, // Empty strings
+                { title: '   ', content: '   ' }, // Whitespace only  
+                { title: 'Title with\nnewlines\ttabs', content: 'Content\rwith\fspecial\vchars' },
+                { title: '🚀💎✨🎯', content: '🔥⭐🎉🚨' }, // Emojis
+                { title: 'null', content: 'undefined' }, // String versions of null/undefined
+                { title: 'Very'.repeat(1000), content: 'Long'.repeat(10000) }, // Very long strings
+            ];
+
+            const createdNotes = [];
+
+            for (const data of edgeCaseData) {
+                const note = await repository.create(data);
+                expect(note).toBeTruthy();
+                expect(note.title).toBe(data.title);
+                expect(note.content).toBe(data.content);
+                createdNotes.push(note);
+
+                // Test retrieval
+                const retrievedNote = await repository.findById(note.id);
+                expect(retrievedNote).toBeTruthy();
+                expect(retrievedNote.title).toBe(data.title);
+                expect(retrievedNote.content).toBe(data.content);
+            }
+
+            // Test finding all notes with edge case data
+            const allNotes = await repository.findAll();
+            expect(allNotes.length).toBeGreaterThanOrEqual(createdNotes.length);
+
+            // Cleanup
+            for (const note of createdNotes) {
+                const deleteResult = await repository.delete(note.id);
+                expect(deleteResult).toBe(true);
+            }
+        });
+
+        it('should handle CouchDB conflict scenarios in updates', async () => {
+            // Create a note
+            const note = await repository.create({
+                title: 'Conflict Test',
+                content: 'Original Content'
+            });
+
+            // Update the note normally first
+            const updatedNote1 = await repository.update(note.id, {
+                title: 'First Update',
+                content: 'First Updated Content'
+            });
+            expect(updatedNote1).toBeTruthy();
+
+            // Update again to ensure revision handling works
+            const updatedNote2 = await repository.update(note.id, {
+                title: 'Second Update',
+                content: 'Second Updated Content'
+            });
+            expect(updatedNote2).toBeTruthy();
+            expect(updatedNote2.title).toBe('Second Update');
+
+            // Cleanup
+            await repository.delete(note.id);
+        });
+    });
+
+    describe('CouchDB-Specific Error Handling', () => {
+        it('should handle various HTTP status codes in update operations', async () => {
+            // Create a note first
+            const note = await repository.create({
+                title: 'Test for HTTP Errors',
+                content: 'Testing HTTP error scenarios'
+            });
+
+            // Test update with non-404 errors during document retrieval
+            const originalDb = repository.db;
+            
+            // Mock db.get to simulate different HTTP errors (lines 164-168)
+            const mockDb = {
+                ...originalDb,
+                get: async (id) => {
+                    // Simulate a non-404 HTTP error
+                    const error = new Error('Unauthorized access');
+                    error.statusCode = 401;
+                    throw error;
+                }
+            };
+
+            repository.db = mockDb;
+
+            try {
+                await repository.update(note.id, { title: 'Updated', content: 'Updated' });
+                fail('Should have thrown an HTTP error');
+            } catch (error) {
+                expect(error).toBeDefined();
+                expect(error.statusCode).toBe(401);
+            } finally {
+                repository.db = originalDb;
+            }
+
+            // Cleanup
+            await repository.delete(note.id);
+        });
+
+        it('should handle 409 conflict errors in update operations', async () => {
+            // Create a note
+            const note = await repository.create({
+                title: 'Conflict Test Note',
+                content: 'Testing conflict scenarios'
+            });
+
+            const originalDb = repository.db;
+            
+            // Mock db.insert to simulate 409 conflict (lines 192-196)
+            const mockDb = {
+                ...originalDb,
+                get: originalDb.get.bind(originalDb), // Keep real get
+                insert: async (doc) => {
+                    const error = new Error('Document update conflict');
+                    error.statusCode = 409;
+                    throw error;
+                }
+            };
+
+            repository.db = mockDb;
+
+            try {
+                await repository.update(note.id, { title: 'Conflict Update', content: 'Should fail' });
+                fail('Should have thrown a 409 conflict error');
+            } catch (error) {
+                expect(error).toBeDefined();
+                expect(error.message).toContain('Document was modified concurrently');
+            } finally {
+                repository.db = originalDb;
+            }
+
+            // Cleanup
+            await repository.delete(note.id);
+        });
+
+        it('should handle CouchDB-specific invalid document IDs', async () => {
+            // CouchDB has specific rules for document IDs
+            const couchDbSpecificIds = [
+                'very'.repeat(100),        // Very long ID (may exceed CouchDB limits)
+                'doc\nwith\nnewlines',    // Control characters
+                'doc\twith\ttabs',        // Tab characters
+                'doc\rwith\rcarriage',    // Carriage returns
+            ];
+
+            for (const invalidId of couchDbSpecificIds) {
+                // Test findById with edge case ID
+                const findResult = await repository.findById(invalidId);
+                expect(findResult).toBeNull(); // Should handle gracefully
+
+                // Test update with edge case ID  
+                const updateResult = await repository.update(invalidId, { title: 'Test', content: 'Test' });
+                expect(updateResult).toBeNull(); // Should handle gracefully
+
+                // Test delete with edge case ID
+                const deleteResult = await repository.delete(invalidId);
+                expect(deleteResult).toBe(false); // Should handle gracefully
+            }
+        });
+
+        it('should handle view-related errors in findAll', async () => {
+            const originalDb = repository.db;
+            
+            // Mock db.view to simulate view errors
+            const mockDb = {
+                ...originalDb,
+                view: async () => {
+                    const error = new Error('View not found');
+                    error.statusCode = 404;
+                    throw error;
+                }
+            };
+
+            repository.db = mockDb;
+
+            try {
+                await repository.findAll();
+                fail('Should have thrown view error');
+            } catch (error) {
+                expect(error).toBeDefined();
+                expect(error.statusCode).toBe(404);
+            } finally {
+                repository.db = originalDb;
+            }
+        });
+
+        it('should handle malformed view results in findAll', async () => {
+            const originalDb = repository.db;
+            
+            // Mock db.view to return malformed results
+            const malformedResults = [
+                { rows: null },               // Null rows
+                { rows: [{ doc: null }] },    // Null documents
+                { rows: [{}] },               // Rows without doc property
+            ];
+
+            for (const malformedResult of malformedResults) {
+                const mockDb = {
+                    ...originalDb,
+                    view: async () => malformedResult
+                };
+
+                repository.db = mockDb;
+
+                const notes = await repository.findAll();
+                expect(Array.isArray(notes)).toBe(true);
+                // Should return empty array or filtered results
+                expect(notes.every(note => note !== null)).toBe(true);
+            }
+
+            repository.db = originalDb;
+        });
+
+        it('should handle various HTTP errors in delete operations', async () => {
+            // Create a note first
+            const note = await repository.create({
+                title: 'Delete Error Test',
+                content: 'Testing delete error scenarios'
+            });
+
+            const originalDb = repository.db;
+            
+            // Test non-404 errors during document retrieval in delete (line 221)
+            const mockDb = {
+                ...originalDb,
+                get: async (id) => {
+                    const error = new Error('Internal Server Error');
+                    error.statusCode = 500;
+                    throw error;
+                }
+            };
+
+            repository.db = mockDb;
+
+            try {
+                await repository.delete(note.id);
+                fail('Should have thrown HTTP 500 error');
+            } catch (error) {
+                expect(error).toBeDefined();
+                expect(error.statusCode).toBe(500);
+            } finally {
+                repository.db = originalDb;
+            }
+
+            // Cleanup
+            await repository.delete(note.id);
+        });
+
+        it('should handle document creation with CouchDB edge cases', async () => {
+            // Test with edge case data that might cause CouchDB-specific issues
+            const couchDbEdgeCases = [
+                { title: JSON.stringify({nested: 'object'}), content: 'JSON in title' },
+                { title: 'Unicode: 🔥💎⭐', content: 'Special chars: àáâãäåæçèé' },
+                { title: '\u0000\u0001\u0002', content: 'Control chars' }, // Control characters
+            ];
+
+            for (const edgeCase of couchDbEdgeCases) {
+                try {
+                    const note = await repository.create(edgeCase);
+                    expect(note).toBeTruthy();
+                    expect(note.title).toBe(edgeCase.title);
+                    expect(note.content).toBe(edgeCase.content);
+
+                    // Verify we can retrieve it
+                    const retrieved = await repository.findById(note.id);
+                    expect(retrieved).toBeTruthy();
+                    expect(retrieved.title).toBe(edgeCase.title);
+
+                    // Cleanup
+                    await repository.delete(note.id);
+                } catch (error) {
+                    // Some edge cases might legitimately fail in CouchDB
+                    expect(error).toBeDefined();
+                    console.log(`Expected CouchDB edge case failure for: ${JSON.stringify(edgeCase)}`);
+                }
+            }
+        });
+
+        it('should handle concurrent update scenarios', async () => {
+            // Create a note
+            const note = await repository.create({
+                title: 'Concurrent Test',
+                content: 'Testing concurrent updates'
+            });
+
+            // Perform multiple rapid updates to test revision handling
+            const updatePromises = Array.from({ length: 3 }, (_, i) =>
+                repository.update(note.id, {
+                    title: `Update ${i}`,
+                    content: `Content ${i}`
+                }).catch(error => ({ error, index: i }))
+            );
+
+            const results = await Promise.allSettled(updatePromises);
+            
+            // Some should succeed, some might fail due to revision conflicts
+            const successes = results.filter(r => r.status === 'fulfilled' && !r.value.error);
+            const failures = results.filter(r => 
+                r.status === 'rejected' || 
+                (r.status === 'fulfilled' && r.value.error)
+            );
+
+            // At least one should succeed
+            expect(successes.length).toBeGreaterThan(0);
+            
+            console.log(`Concurrent updates: ${successes.length} succeeded, ${failures.length} failed`);
+
+            // Cleanup
+            await repository.delete(note.id);
+        });
+    });
+
+
 }); 

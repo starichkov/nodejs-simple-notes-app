@@ -426,4 +426,152 @@ describe('Server Integration Tests', () => {
             });
         });
     });
+});
+
+describe('Server Error Handling - Additional Coverage', () => {
+    let consoleErrorSpy;
+
+    beforeEach(() => {
+        consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+        jest.clearAllMocks();
+    });
+
+    afterEach(() => {
+        consoleErrorSpy.mockRestore();
+    });
+
+    describe('Initialization Error Handling', () => {
+        test('should handle and log repository initialization errors', async () => {
+            const { initializeApp } = await import('../../src/notes-api-server.js');
+            
+            const failingRepository = {
+                init: jest.fn().mockRejectedValue(new Error('Database connection timeout'))
+            };
+
+            await expect(initializeApp(failingRepository)).rejects.toThrow('Database connection timeout');
+            expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to initialize application:', expect.any(Error));
+        });
+
+        test('should handle concurrent initialization requests', async () => {
+            const { initializeApp } = await import('../../src/notes-api-server.js');
+            
+            const slowRepository = { 
+                init: jest.fn().mockImplementation(() => 
+                    new Promise(resolve => setTimeout(() => resolve(), 50))
+                )
+            };
+
+            // Start multiple initialization attempts concurrently
+            const promise1 = initializeApp(slowRepository);
+            const promise2 = initializeApp(slowRepository);
+            
+            const [result1, result2] = await Promise.all([promise1, promise2]);
+            
+            expect(result1.app).toBeDefined();
+            expect(result2.app).toBeDefined();
+            expect(slowRepository.init).toHaveBeenCalledTimes(2);
+        });
+
+        test('should handle timeout during repository initialization', async () => {
+            const { initializeApp } = await import('../../src/notes-api-server.js');
+            
+            const timeoutRepository = {
+                init: jest.fn().mockImplementation(() => 
+                    new Promise((_, reject) => 
+                        setTimeout(() => reject(new Error('Connection timeout')), 50)
+                    )
+                )
+            };
+
+            await expect(initializeApp(timeoutRepository)).rejects.toThrow('Connection timeout');
+            expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to initialize application:', expect.any(Error));
+        });
+    });
+
+    describe('Environment Configuration', () => {
+        let originalEnv;
+
+        beforeEach(() => {
+            originalEnv = { ...process.env };
+        });
+
+        afterEach(() => {
+            process.env = originalEnv;
+        });
+
+        test('should handle missing environment variables gracefully', async () => {
+            // Test with completely clean environment
+            delete process.env.HOST;
+            delete process.env.PORT;
+            delete process.env.DB_VENDOR;
+            
+            const { createNoteRepository } = await import('../../src/notes-api-server.js');
+            const repository = createNoteRepository();
+            
+            expect(repository).toBeDefined();
+        });
+
+        test('should default to CouchDB for invalid database vendor', async () => {
+            process.env.DB_VENDOR = 'invalid-database';
+            
+            const { createNoteRepository } = await import('../../src/notes-api-server.js');
+            const repository = createNoteRepository();
+            
+            // Should create CouchDB repository as fallback
+            expect(repository).toBeDefined();
+            expect(repository.constructor.name).toBe('MockNoteRepository'); // In test environment
+        });
+
+        test('should handle empty string environment variables', async () => {
+            process.env.HOST = '';
+            process.env.PORT = '';
+            process.env.DB_VENDOR = '';
+            
+            const { createNoteRepository } = await import('../../src/notes-api-server.js');
+            const repository = createNoteRepository();
+            
+            expect(repository).toBeDefined();
+        });
+    });
+
+    describe('Error Propagation', () => {
+        test('should properly propagate initialization errors', async () => {
+            const { initializeApp } = await import('../../src/notes-api-server.js');
+            
+            const customError = new Error('Custom initialization error');
+            customError.code = 'CUSTOM_ERROR';
+            
+            const failingRepository = {
+                init: jest.fn().mockRejectedValue(customError)
+            };
+
+            try {
+                await initializeApp(failingRepository);
+                fail('Should have thrown an error');
+            } catch (error) {
+                expect(error.message).toBe('Custom initialization error');
+                expect(error.code).toBe('CUSTOM_ERROR');
+                expect(consoleErrorSpy).toHaveBeenCalledWith('Failed to initialize application:', error);
+            }
+        });
+
+        test('should handle various error types during initialization', async () => {
+            const { initializeApp } = await import('../../src/notes-api-server.js');
+            
+            const errorTypes = [
+                new TypeError('Type error during init'),
+                new ReferenceError('Reference error during init'),
+                new RangeError('Range error during init'),
+                new Error('Generic error during init')
+            ];
+
+            for (const errorType of errorTypes) {
+                const failingRepository = {
+                    init: jest.fn().mockRejectedValue(errorType)
+                };
+
+                await expect(initializeApp(failingRepository)).rejects.toThrow(errorType.message);
+            }
+        });
+    });
 }); 

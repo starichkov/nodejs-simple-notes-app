@@ -172,4 +172,124 @@ describe('MongoDbNoteRepository Integration Tests', () => {
             );
         });
     });
+
+    describe('Error Handling Coverage', () => {
+        it('should handle CastError in update with invalid ObjectId', async () => {
+            const invalidId = 'invalid-object-id-format';
+            const noteData = { title: 'Updated Title', content: 'Updated Content' };
+
+            // This should trigger CastError and return null (lines 159-163)
+            const result = await repository.update(invalidId, noteData);
+            expect(result).toBeNull();
+        });
+
+        it('should handle CastError in delete with invalid ObjectId', async () => {
+            const invalidId = 'another-invalid-id';
+
+            // This should trigger CastError and return false (lines 177-181)
+            const result = await repository.delete(invalidId);
+            expect(result).toBe(false);
+        });
+
+        it('should handle various invalid ObjectId formats in update', async () => {
+            const invalidIds = [
+                'short',
+                '12345',
+                'not-hex-chars-xyz',
+                'too-long-object-id-format-123456789',
+                '',
+                '000000000000000000000000' // Valid format but likely non-existent
+            ];
+
+            const noteData = { title: 'Test', content: 'Test Content' };
+
+            for (const invalidId of invalidIds) {
+                const result = await repository.update(invalidId, noteData);
+                // Should either return null (CastError) or null (not found)
+                expect(result).toBeNull();
+            }
+        });
+
+        it('should handle various invalid ObjectId formats in delete', async () => {
+            const invalidIds = [
+                'invalid',
+                '12345abcde',
+                'xxxxxxxxxxxxxxxxxxxxxxxxx',
+                'short-id',
+                'special!@#$%^&*()characters'
+            ];
+
+            for (const invalidId of invalidIds) {
+                const result = await repository.delete(invalidId);
+                // Should either return false (CastError) or false (not found)
+                expect(result).toBe(false);
+            }
+        });
+
+        it('should handle malformed data in update operations', async () => {
+            // Create a valid note first
+            const note = await repository.create({
+                title: 'Test Note',
+                content: 'Test Content'
+            });
+
+            // Test with extremely long content that might cause issues
+            const veryLongContent = 'x'.repeat(1000000); // 1MB of 'x'
+            const updateResult = await repository.update(note.id, {
+                title: 'Updated Title',
+                content: veryLongContent
+            });
+
+            // Should handle large content gracefully
+            expect(updateResult).toBeTruthy();
+            expect(updateResult.content).toBe(veryLongContent);
+
+            // Cleanup
+            await repository.delete(note.id);
+        });
+
+        it('should handle edge case data types and validation in CRUD operations', async () => {
+            // Test data that should PASS validation
+            const validEdgeCaseData = [
+                { title: '   ', content: '   ' }, // Whitespace only (still has content)
+                { title: 'Title with\nnewlines\ttabs', content: 'Content\rwith\fspecial\vchars' },
+                { title: '🚀💎✨🎯', content: '🔥⭐🎉🚨' }, // Emojis
+                { title: 'null', content: 'undefined' }, // String versions of null/undefined
+            ];
+
+            const createdNotes = [];
+
+            for (const data of validEdgeCaseData) {
+                const note = await repository.create(data);
+                expect(note).toBeTruthy();
+                expect(note.title).toBe(data.title);
+                expect(note.content).toBe(data.content);
+                createdNotes.push(note);
+            }
+
+            // Test data that should FAIL validation (empty strings)
+            const invalidData = [
+                { title: '', content: '' }, // Empty strings should fail
+                { title: '', content: 'Valid content' }, // Empty title should fail
+                { title: 'Valid title', content: '' }, // Empty content should fail
+            ];
+
+            for (const data of invalidData) {
+                try {
+                    await repository.create(data);
+                    fail(`Should have thrown validation error for: ${JSON.stringify(data)}`);
+                } catch (error) {
+                    expect(error).toBeDefined();
+                    expect(error.message).toContain('validation failed');
+                }
+            }
+
+            // Cleanup valid notes
+            for (const note of createdNotes) {
+                await repository.delete(note.id);
+            }
+        });
+    });
+
+
 }); 
