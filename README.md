@@ -1,3 +1,4 @@
+[![Author](https://img.shields.io/badge/Author-Vadim%20Starichkov-blue?style=for-the-badge)](https://github.com/starichkov)
 [![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/starichkov/nodejs-simple-notes-app/node.js.yml?style=for-the-badge)](https://github.com/starichkov/nodejs-simple-notes-app/actions/workflows/node.js.yml)
 [![Codecov](https://img.shields.io/codecov/c/github/starichkov/nodejs-simple-notes-app?style=for-the-badge)](https://codecov.io/gh/starichkov/nodejs-simple-notes-app)
 [![GitHub License](https://img.shields.io/github/license/starichkov/nodejs-simple-notes-app?style=for-the-badge)](https://github.com/starichkov/nodejs-simple-notes-app/blob/main/LICENSE.md)
@@ -6,6 +7,12 @@ Notes API: Node.js with Express and NoSQL Databases
 =
 
 A RESTful API for managing text notes, built with Node.js, Express, and NoSQL databases. The application follows a database-agnostic architecture, allowing for easy switching between database vendors (currently supports CouchDB and MongoDB).
+
+## 👨‍💻 Author
+
+**Vadim Starichkov** | [GitHub](https://github.com/starichkov) | [Email](mailto:starichkovva@gmail.com)
+
+*Created as part of a modern Node.js development practices demonstration*
 
 ## Features
 
@@ -332,6 +339,18 @@ if (DB_VENDOR === 'new-vendor') {
 }
 ```
 
-## License
+## 📄 License & Attribution
 
-See the [LICENSE](LICENSE.md) file for license rights and limitations (MIT).
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE.md) file for details.
+
+### Using This Project?
+
+If you use this code in your own projects, attribution is required under the MIT License:
+
+```
+Based on nodejs-simple-notes-app by Vadim Starichkov, TemplateTasks
+
+https://github.com/starichkov/nodejs-simple-notes-app
+```
+
+**Copyright © 2025 Vadim Starichkov, TemplateTasks**

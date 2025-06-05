@@ -8,10 +8,21 @@
     "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",
     "start": "node src/notes-api-server.js"
   },
-  "keywords": [],
+  "keywords": [
+    "nodejs",
+    "express",
+    "notes-api",
+    "restful-api",
+    "couchdb",
+    "mongodb",
+    "nosql",
+    "database-agnostic",
+    "crud-api",
+    "web-ui"
+  ],
   "author": "Vadim Starichkov <starichkovva@gmail.com>",
   "license": "MIT",
-  "description": "Example of Node.js simple HTTP server",
+  "description": "RESTful Notes API with Node.js, Express, and NoSQL databases (CouchDB/MongoDB) - database-agnostic architecture with web UI",
   "repository": {
     "type": "git",
     "url": "https://github.com/starichkov/nodejs-simple-notes-app.git"
