@@ -12,38 +12,65 @@ import {createNotesRouter} from './routes/notes-routes.js';
 dotenv.config();
 
 // Get configuration from environment variables
-const HOST = process.env.HOST || '0.0.0.0';
-const PORT = process.env.PORT || 3000;
-const DB_VENDOR = process.env.DB_VENDOR || 'couchdb';
+export const HOST = process.env.HOST || '0.0.0.0';
+export const PORT = process.env.PORT || 3000;
+export const DB_VENDOR = process.env.DB_VENDOR || 'couchdb';
 
 // CouchDB configuration
-const COUCHDB_URL = process.env.COUCHDB_URL || 'http://admin:password@localhost:5984';
-const COUCHDB_DB_NAME = process.env.COUCHDB_DB_NAME || 'notes_db';
+export const COUCHDB_URL = process.env.COUCHDB_URL || 'http://admin:password@localhost:5984';
+export const COUCHDB_DB_NAME = process.env.COUCHDB_DB_NAME || 'notes_db';
 
 // MongoDB configuration
-const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
-const MONGODB_DB_NAME = process.env.MONGODB_DB_NAME || 'notes_db';
+export const MONGODB_URL = process.env.MONGODB_URL || 'mongodb://localhost:27017';
+export const MONGODB_DB_NAME = process.env.MONGODB_DB_NAME || 'notes_db';
 
 // Get the directory name
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Create an Express application
-const app = express();
+export const app = express();
+
+// Server instance (will be set when server starts)
+let server = null;
 
 // Create the appropriate repository based on the DB_VENDOR
-let noteRepository;
-if (DB_VENDOR === 'mongodb') {
-    console.log('Using MongoDB as the database vendor');
-    noteRepository = new MongoDbNoteRepository(MONGODB_URL, MONGODB_DB_NAME);
-} else {
-    console.log('Using CouchDB as the database vendor');
-    noteRepository = new CouchDbNoteRepository(COUCHDB_URL, COUCHDB_DB_NAME);
+export function createNoteRepository() {
+    if (DB_VENDOR === 'mongodb') {
+        console.log('Using MongoDB as the database vendor');
+        return new MongoDbNoteRepository(MONGODB_URL, MONGODB_DB_NAME);
+    } else {
+        console.log('Using CouchDB as the database vendor');
+        return new CouchDbNoteRepository(COUCHDB_URL, COUCHDB_DB_NAME);
+    }
+}
+
+// Graceful shutdown function
+export function gracefulShutdown() {
+    console.log('Shutting down gracefully...');
+    if (server) {
+        server.close(() => {
+            console.log('HTTP server closed');
+            // Close database connections, etc.
+            process.exit(0);
+        });
+
+        // Force close if graceful shutdown takes too long
+        setTimeout(() => {
+            console.error('Could not close connections in time, forcefully shutting down');
+            process.exit(1);
+        }, 10000);
+    } else {
+        process.exit(0);
+    }
 }
 
 // Initialize the application
-async function initializeApp() {
+export async function initializeApp(noteRepository = null) {
     try {
+        // Clear any existing middleware/routes for testing
+        app._router = undefined;
+        
         app.use(helmet());
         app.use(cors());
 
@@ -53,12 +80,15 @@ async function initializeApp() {
         // Serve static files from the public directory
         app.use(express.static(path.join(__dirname, 'public')));
 
+        // Use provided repository or create default one
+        const repository = noteRepository || createNoteRepository();
+        
         // Initialize the repository
-        await noteRepository.init();
+        await repository.init();
         console.log('Repository initialized successfully');
 
         // Create and mount the notes router
-        const notesRouter = createNotesRouter(noteRepository);
+        const notesRouter = createNotesRouter(repository);
         app.use('/api/notes', notesRouter);
 
         // Add a simple health check endpoint
@@ -79,49 +109,53 @@ async function initializeApp() {
         // Error handling middleware
         app.use((err, req, res, next) => {
             console.error('Unhandled error:', err);
+            
+            // Handle JSON parsing errors
+            if (err.type === 'entity.parse.failed') {
+                return res.status(400).json({ error: 'Invalid JSON' });
+            }
+            
+            // Default to 500 for other errors
             res.status(500).json({error: 'Internal server error'});
         });
 
-        // Start the server
-        app.listen(PORT, HOST, () => {
-            console.log(`Notes API server is running at http://${HOST}:${PORT}`);
-            console.log('Available endpoints:');
-            console.log('  GET    /                - Web UI for notes management');
-            console.log('  GET    /api/notes       - Get all notes');
-            console.log('  GET    /api/notes/:id   - Get a note by ID');
-            console.log('  POST   /api/notes       - Create a new note');
-            console.log('  PUT    /api/notes/:id   - Update a note');
-            console.log('  DELETE /api/notes/:id   - Delete a note');
-            console.log('  GET    /health          - Health check');
-            console.log('\nOpen your browser at http://localhost:' + PORT + ' to use the Notes UI');
-        });
-
-        // Handle graceful shutdown
-        process.on('SIGTERM', gracefulShutdown);
-        process.on('SIGINT', gracefulShutdown);
-
-        function gracefulShutdown() {
-            console.log('Shutting down gracefully...');
-            server.close(() => {
-                console.log('HTTP server closed');
-                // Close database connections, etc.
-                process.exit(0);
-            });
-
-            // Force close if graceful shutdown takes too long
-            setTimeout(() => {
-                console.error('Could not close connections in time, forcefully shutting down');
-                process.exit(1);
-            }, 10000);
-        }
+        return { app, repository };
     } catch (error) {
         console.error('Failed to initialize application:', error);
-        process.exit(1);
+        throw error;
     }
 }
 
-// Start the application
-initializeApp().catch(error => {
-    console.error('Application startup failed:', error);
-    process.exit(1);
-});
+// Start the server
+export function startServer() {
+    server = app.listen(PORT, HOST, () => {
+        console.log(`Notes API server is running at http://${HOST}:${PORT}`);
+        console.log('Available endpoints:');
+        console.log('  GET    /                - Web UI for notes management');
+        console.log('  GET    /api/notes       - Get all notes');
+        console.log('  GET    /api/notes/:id   - Get a note by ID');
+        console.log('  POST   /api/notes       - Create a new note');
+        console.log('  PUT    /api/notes/:id   - Update a note');
+        console.log('  DELETE /api/notes/:id   - Delete a note');
+        console.log('  GET    /health          - Health check');
+        console.log('\nOpen your browser at http://localhost:' + PORT + ' to use the Notes UI');
+    });
+
+    // Handle graceful shutdown
+    process.on('SIGTERM', gracefulShutdown);
+    process.on('SIGINT', gracefulShutdown);
+
+    return server;
+}
+
+// Only start the server if this file is run directly (not imported)
+if (import.meta.url === `file://${process.argv[1]}`) {
+    initializeApp()
+        .then(() => {
+            startServer();
+        })
+        .catch(error => {
+            console.error('Application startup failed:', error);
+            process.exit(1);
+        });
+}
