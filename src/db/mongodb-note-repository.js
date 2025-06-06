@@ -4,12 +4,26 @@ import { Note } from '../models/note.js';
 
 /**
  * MongoDB implementation of the NoteRepository interface.
+ * Provides persistent storage for notes using MongoDB as the backend via Mongoose ODM.
+ * 
+ * @class
+ * @extends NoteRepository
+ * @example
+ * const repository = new MongoDbNoteRepository('mongodb://localhost:27017', 'notes_db');
+ * await repository.init();
+ * const notes = await repository.findAll();
  */
 export class MongoDbNoteRepository extends NoteRepository {
     /**
      * Create a new MongoDbNoteRepository
-     * @param {string} url - MongoDB connection URL
-     * @param {string} dbName - Database name
+     * @param {string} url - MongoDB connection URL (with or without authentication)
+     * @param {string} dbName - Database name to use for storing notes
+     * @example
+     * // With authentication
+     * const repo = new MongoDbNoteRepository('mongodb://user:pass@localhost:27017', 'my_notes');
+     * 
+     * // Without authentication
+     * const repo = new MongoDbNoteRepository('mongodb://localhost:27017', 'my_notes');
      */
     constructor(url, dbName) {
         super();
@@ -19,8 +33,15 @@ export class MongoDbNoteRepository extends NoteRepository {
     }
 
     /**
-     * Initialize the repository by connecting to MongoDB and setting up the schema
+     * Initialize the repository by connecting to MongoDB and setting up the schema.
+     * This method must be called before using any other repository methods.
+     * 
      * @returns {Promise<void>}
+     * @throws {Error} When MongoDB is unreachable or connection fails
+     * @throws {Error} When schema creation fails
+     * @example
+     * const repository = new MongoDbNoteRepository(url, dbName);
+     * await repository.init(); // Connects to MongoDB and creates schema
      */
     async init() {
         try {
@@ -49,8 +70,13 @@ export class MongoDbNoteRepository extends NoteRepository {
     }
 
     /**
-     * Find all notes
-     * @returns {Promise<Array>} Promise resolving to an array of Note objects
+     * Find all notes in the database, sorted by most recently updated first
+     * @returns {Promise<Note[]>} Promise resolving to an array of Note objects
+     * @throws {Error} When database query fails or MongoDB is unreachable
+     * @example
+     * const notes = await repository.findAll();
+     * console.log(`Found ${notes.length} notes`);
+     * // Notes are sorted by updatedAt in descending order (newest first)
      */
     async findAll() {
         try {
@@ -69,9 +95,17 @@ export class MongoDbNoteRepository extends NoteRepository {
     }
 
     /**
-     * Find a note by its ID
-     * @param {string} id - The ID of the note to find
-     * @returns {Promise<Object|null>} Promise resolving to a Note object or null if not found
+     * Find a note by its unique identifier
+     * @param {string} id - The unique ID of the note to retrieve (MongoDB ObjectId)
+     * @returns {Promise<Note|null>} Promise resolving to a Note object or null if not found
+     * @throws {Error} When database query fails (except for invalid ObjectId format)
+     * @example
+     * const note = await repository.findById('507f1f77bcf86cd799439011');
+     * if (note) {
+     *   console.log(`Found note: ${note.title}`);
+     * } else {
+     *   console.log('Note not found');
+     * }
      */
     async findById(id) {
         try {
@@ -96,9 +130,18 @@ export class MongoDbNoteRepository extends NoteRepository {
     }
 
     /**
-     * Create a new note
-     * @param {Object} note - The note to create
-     * @returns {Promise<Object>} Promise resolving to the created Note object
+     * Create a new note in the database
+     * @param {Object} note - The note data to create
+     * @param {string} note.title - The title of the note
+     * @param {string} note.content - The content of the note
+     * @returns {Promise<Note>} Promise resolving to the created Note object with assigned ID
+     * @throws {Error} When note creation fails due to validation errors or database issues
+     * @example
+     * const newNote = await repository.create({
+     *   title: 'My New Note',
+     *   content: 'This is the content of my note'
+     * });
+     * console.log(`Created note with ID: ${newNote.id}`);
      */
     async create(note) {
         try {
@@ -126,10 +169,23 @@ export class MongoDbNoteRepository extends NoteRepository {
     }
 
     /**
-     * Update an existing note
-     * @param {string} id - The ID of the note to update
+     * Update an existing note in the database
+     * @param {string} id - The ID of the note to update (MongoDB ObjectId)
      * @param {Object} note - The updated note data
-     * @returns {Promise<Object|null>} Promise resolving to the updated Note object or null if not found
+     * @param {string} note.title - The updated title of the note
+     * @param {string} note.content - The updated content of the note
+     * @returns {Promise<Note|null>} Promise resolving to the updated Note object or null if not found
+     * @throws {Error} When update fails due to validation errors or database issues
+     * @example
+     * const updatedNote = await repository.update('507f1f77bcf86cd799439011', {
+     *   title: 'Updated Title',
+     *   content: 'Updated content'
+     * });
+     * if (updatedNote) {
+     *   console.log('Note updated successfully');
+     * } else {
+     *   console.log('Note not found');
+     * }
      */
     async update(id, note) {
         try {
@@ -165,9 +221,17 @@ export class MongoDbNoteRepository extends NoteRepository {
     }
 
     /**
-     * Delete a note by its ID
-     * @param {string} id - The ID of the note to delete
+     * Delete a note from the database
+     * @param {string} id - The ID of the note to delete (MongoDB ObjectId)
      * @returns {Promise<boolean>} Promise resolving to true if deleted, false if not found
+     * @throws {Error} When deletion fails due to database issues
+     * @example
+     * const deleted = await repository.delete('507f1f77bcf86cd799439011');
+     * if (deleted) {
+     *   console.log('Note deleted successfully');
+     * } else {
+     *   console.log('Note not found');
+     * }
      */
     async delete(id) {
         try {

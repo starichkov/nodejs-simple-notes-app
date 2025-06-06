@@ -1,0 +1,77 @@
+name: Generate and Deploy Documentation
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  release:
+    types: [ published ]
+
+jobs:
+  # Single job for complete documentation pipeline
+  docs-pipeline:
+    runs-on: ubuntu-latest
+    
+    # Required for GitHub Pages deployment
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+      
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+      
+    steps:
+      # 1. Setup phase (once)
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      # 2. Build phase
+      - name: Generate documentation
+        run: npm run docs
+        
+      # 3. Quality check phase
+      - name: Install quality tools
+        run: npm install -g linkinator
+        
+      - name: Check for broken links
+        run: linkinator docs/ --recurse --silent
+        
+      - name: Validate JSDoc coverage
+        run: node scripts/check-docs-coverage.js
+        
+      # 4. Archive documentation (optional - for debugging)
+      - name: Upload documentation artifacts
+        if: failure() || github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: documentation
+          path: docs/
+          retention-days: 7
+        
+      # 5. Deploy phase (only on main branch pushes)
+      - name: Setup Pages
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        uses: actions/configure-pages@v3
+        
+      - name: Upload to GitHub Pages
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        uses: actions/upload-pages-artifact@v2
+        with:
+          path: docs/
+          
+      - name: Deploy to GitHub Pages
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        id: deployment
+        uses: actions/deploy-pages@v2 

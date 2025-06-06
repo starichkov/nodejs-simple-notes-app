@@ -10,7 +10,7 @@ A RESTful API for managing text notes, built with Node.js, Express, and NoSQL da
 
 ## 👨‍💻 Author
 
-**Vadim Starichkov** | [GitHub](https://github.com/starichkov) | [Email](mailto:starichkovva@gmail.com)
+**Vadim Starichkov** | [GitHub](https://github.com/starichkov) | [LinkedIn](https://www.linkedin.com/in/vadim-starichkov/)
 
 *Created as part of a modern Node.js development practices demonstration*
 

@@ -1,0 +1,21 @@
+{
+  "source": {
+    "include": ["./src/", "./README.md"],
+    "includePattern": "\\.(js|jsx)$",
+    "exclude": ["node_modules/", "__tests__/"]
+  },
+  "opts": {
+    "destination": "./docs/",
+    "recurse": true,
+    "readme": "./README.md"
+  },
+  "plugins": ["plugins/markdown"],
+  "templates": {
+    "cleverLinks": false,
+    "monospaceLinks": false
+  },
+  "metadata": {
+    "title": "Simple Notes App API Documentation",
+    "description": "RESTful Notes API with Node.js, Express, and NoSQL databases"
+  }
+} 
