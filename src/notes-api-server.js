@@ -238,30 +238,59 @@ const globalNotesServer = new NotesServer();
 /*
  * Convenience exports for backward compatibility
  * These provide direct access to a global NotesServer instance.
- * 
- * @ignore - Suppressed from documentation to avoid duplication
- * Use the NotesServer class directly for better testability and control.
- * 
- * Example usage:
- * // Recommended approach:
- * const server = new NotesServer();
- * await server.initializeApp();
- * server.startServer();
+ * For better testability and control, use the NotesServer class directly.
  */
 
-/** @ignore */
+/**
+ * Global Express application instance for backward compatibility
+ * @type {express.Application}
+ * @deprecated Use NotesServer class for better control
+ * @example
+ * import { app } from './notes-api-server.js';
+ * // Note: Prefer using NotesServer class directly
+ */
 export const app = globalNotesServer.app;
 
-/** @ignore */
+/**
+ * Create repository instance using global server (backward compatibility)
+ * @returns {CouchDbNoteRepository|MongoDbNoteRepository} The configured repository instance
+ * @deprecated Use NotesServer.createNoteRepository() for better testability
+ * @example
+ * import { createNoteRepository } from './notes-api-server.js';
+ * const repo = createNoteRepository();
+ */
 export const createNoteRepository = () => globalNotesServer.createNoteRepository();
 
-/** @ignore */
+/**
+ * Graceful shutdown using global server (backward compatibility)
+ * @param {number} [timeout=10000] - Timeout in milliseconds before forcing shutdown
+ * @returns {void}
+ * @deprecated Use NotesServer.gracefulShutdown() for better control
+ * @example
+ * import { gracefulShutdown } from './notes-api-server.js';
+ * gracefulShutdown();
+ */
 export const gracefulShutdown = () => globalNotesServer.gracefulShutdown();
 
-/** @ignore */
+/**
+ * Initialize application using global server (backward compatibility)
+ * @param {?NoteRepository} [noteRepository=null] - Optional repository instance for dependency injection
+ * @returns {Promise<{app: express.Application, repository: NoteRepository}>} Initialized app and repository
+ * @deprecated Use NotesServer.initializeApp() for better testability
+ * @example
+ * import { initializeApp } from './notes-api-server.js';
+ * const { app, repository } = await initializeApp();
+ */
 export const initializeApp = (noteRepository = null) => globalNotesServer.initializeApp(noteRepository);
 
-/** @ignore */
+/**
+ * Start server using global server instance (backward compatibility)
+ * @returns {http.Server} The started HTTP server instance
+ * @deprecated Use NotesServer.startServer() for better control
+ * @example
+ * import { startServer } from './notes-api-server.js';
+ * const server = startServer();
+ */
 export const startServer = () => globalNotesServer.startServer();
 
 // Only start the server if this file is run directly (not imported)
