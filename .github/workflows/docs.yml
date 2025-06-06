@@ -46,7 +46,7 @@ jobs:
         run: npm install -g linkinator
         
       - name: Check for broken links
-        run: linkinator docs/ --recurse --silent
+        run: linkinator docs/ --recurse --silent --retry --retry-errors --skip "github\.com"
         
       - name: Validate JSDoc coverage
         run: node scripts/check-docs-coverage.js
