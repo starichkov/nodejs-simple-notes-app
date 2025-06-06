@@ -25,7 +25,15 @@ window.addEventListener('click', (e) => {
     }
 });
 
-// Fetch all notes from the API
+/**
+ * Fetch all notes from the API and display them in the UI
+ * @async
+ * @returns {Promise<void>}
+ * @throws {Error} When API request fails or response is not ok
+ * @example
+ * // Automatically called on page load
+ * await fetchNotes();
+ */
 async function fetchNotes() {
     try {
         const response = await fetch(API_URL);
@@ -40,7 +48,19 @@ async function fetchNotes() {
     }
 }
 
-// Display notes in the UI
+/**
+ * Display notes in the UI container, handling empty state
+ * @param {Object[]} notes - Array of note objects to display
+ * @param {string} notes[].id - Unique identifier of the note
+ * @param {string} notes[].title - Title of the note
+ * @param {string} notes[].content - Content of the note
+ * @returns {void}
+ * @example
+ * const notes = [
+ *   { id: '1', title: 'Sample Note', content: 'Sample content' }
+ * ];
+ * displayNotes(notes);
+ */
 function displayNotes(notes) {
     if (notes.length === 0) {
         notesContainer.innerHTML = '<div class="no-notes">No notes found. Create your first note!</div>';
@@ -62,7 +82,13 @@ function displayNotes(notes) {
     notesContainer.addEventListener('click', handleNoteActions);
 }
 
-// Open modal for creating a new note
+/**
+ * Open the modal dialog for creating a new note
+ * @returns {void}
+ * @example
+ * // Called when user clicks "Create New Note" button
+ * openCreateNoteModal();
+ */
 function openCreateNoteModal() {
     modalTitle.textContent = 'Create New Note';
     noteIdInput.value = '';
@@ -71,7 +97,16 @@ function openCreateNoteModal() {
     noteModal.classList.add('modal-visible');
 }
 
-// Open modal for editing an existing note
+/**
+ * Open the modal dialog for editing an existing note
+ * @async
+ * @param {string} id - The unique identifier of the note to edit
+ * @returns {Promise<void>}
+ * @throws {Error} When note fetch fails or note is not found
+ * @example
+ * // Called when user clicks "Edit" button on a note
+ * await openEditNoteModal('note_123');
+ */
 async function openEditNoteModal(id) {
     try {
         const response = await fetch(`${API_URL}/${id}`);
@@ -91,12 +126,27 @@ async function openEditNoteModal(id) {
     }
 }
 
-// Close the modal
+/**
+ * Close the modal dialog and hide it from view
+ * @returns {void}
+ * @example
+ * // Called when user clicks close button or cancel
+ * closeModal();
+ */
 function closeModal() {
     noteModal.classList.remove('modal-visible');
 }
 
-// Handle form submission (create or update note)
+/**
+ * Handle form submission for creating or updating a note
+ * @async
+ * @param {Event} e - The form submit event
+ * @returns {Promise<void>}
+ * @throws {Error} When note creation/update fails
+ * @example
+ * // Automatically called when form is submitted
+ * noteForm.addEventListener('submit', handleFormSubmit);
+ */
 async function handleFormSubmit(e) {
     e.preventDefault();
 
@@ -137,7 +187,16 @@ async function handleFormSubmit(e) {
     }
 }
 
-// Delete a note
+/**
+ * Delete a note after user confirmation
+ * @async
+ * @param {string} id - The unique identifier of the note to delete
+ * @returns {Promise<void>}
+ * @throws {Error} When note deletion fails
+ * @example
+ * // Called when user clicks "Delete" button on a note
+ * await deleteNote('note_123');
+ */
 async function deleteNote(id) {
     if (!confirm('Are you sure you want to delete this note?')) {
         return;
@@ -159,7 +218,14 @@ async function deleteNote(id) {
     }
 }
 
-// Handle clicks on note action buttons using event delegation
+/**
+ * Handle clicks on note action buttons using event delegation
+ * @param {Event} e - The click event on the notes container
+ * @returns {void}
+ * @example
+ * // Automatically handles edit and delete button clicks
+ * notesContainer.addEventListener('click', handleNoteActions);
+ */
 function handleNoteActions(e) {
     const target = e.target;
 
@@ -175,7 +241,14 @@ function handleNoteActions(e) {
     }
 }
 
-// Helper function to escape HTML to prevent XSS
+/**
+ * Escape HTML characters to prevent XSS attacks
+ * @param {string} unsafe - The unsafe string that may contain HTML characters
+ * @returns {string} The escaped string safe for HTML insertion
+ * @example
+ * const safe = escapeHtml('<script>alert("xss")</script>');
+ * // Returns: "&lt;script&gt;alert("xss")&lt;/script&gt;"
+ */
 function escapeHtml(unsafe) {
     return unsafe
         .replace(/&/g, "&amp;")

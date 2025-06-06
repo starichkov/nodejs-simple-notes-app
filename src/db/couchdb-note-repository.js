@@ -18,6 +18,7 @@ export class CouchDbNoteRepository extends NoteRepository {
      * Create a new CouchDbNoteRepository
      * @param {string} url - CouchDB connection URL (including authentication if required)
      * @param {string} dbName - Database name to use for storing notes
+     * @returns {CouchDbNoteRepository} New CouchDbNoteRepository instance
      * @example
      * // With authentication
      * const repo = new CouchDbNoteRepository('http://user:pass@localhost:5984', 'my_notes');

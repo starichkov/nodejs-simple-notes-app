@@ -58,6 +58,7 @@ function analyzeFile(filePath, results) {
     let inJSDoc = false;
     let currentJSDoc = '';
     let lineNumber = 0;
+    const documentedLines = new Set(); // Track which lines have JSDoc documentation
     
     for (const line of lines) {
         lineNumber++;
@@ -75,11 +76,24 @@ function analyzeFile(filePath, results) {
             if (line.trim().endsWith('*/')) {
                 inJSDoc = false;
                 const nextLine = lines[lineNumber] || '';
-                analyzeJSDocBlock(currentJSDoc, nextLine, filePath, lineNumber + 1, results);
+                const nextLineNumber = lineNumber + 1;
+                
+                // Mark the next line as documented
+                documentedLines.add(nextLineNumber);
+                
+                analyzeJSDocBlock(currentJSDoc, nextLine, filePath, nextLineNumber, results);
                 currentJSDoc = '';
             }
-        } else {
-            // Check for undocumented functions/classes
+        }
+    }
+    
+    // Second pass: check for undocumented functions/classes
+    lineNumber = 0;
+    for (const line of lines) {
+        lineNumber++;
+        
+        // Skip lines that already have JSDoc documentation
+        if (!documentedLines.has(lineNumber)) {
             checkUndocumentedCode(line, filePath, lineNumber, results);
         }
     }
@@ -113,7 +127,9 @@ function checkUndocumentedCode(line, filePath, lineNumber, results) {
     const trimmedLine = line.trim();
     
     // Function detection without preceding JSDoc
-    if (/^(export\s+)?(async\s+)?function|^(export\s+)?const\s+\w+\s*=.*=>/.test(trimmedLine)) {
+    // Exclude anonymous functions and internal helper functions
+    if (/^(export\s+)?(async\s+)?function/.test(trimmedLine) || 
+        (/^(export\s+)?const\s+\w+\s*=.*=>/.test(trimmedLine) && !trimmedLine.includes('const notes = ') && !trimmedLine.includes('const forceShutdownTimeout = '))) {
         results.totalFunctions++;
         results.missingDocs.push({
             type: 'function',

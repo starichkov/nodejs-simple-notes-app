@@ -43,6 +43,9 @@ export class NotesServer {
     /**
      * Create a new NotesServer instance
      * @constructor
+     * @returns {NotesServer} New NotesServer instance
+     * @example
+     * const server = new NotesServer();
      */
     constructor() {
         /**
@@ -87,6 +90,7 @@ export class NotesServer {
      * Implements a timeout mechanism to force shutdown if graceful shutdown takes too long.
      * 
      * @param {number} [timeout=10000] - Timeout in milliseconds before forcing shutdown
+     * @returns {void}
      * @example
      * // Manual shutdown
      * server.gracefulShutdown();

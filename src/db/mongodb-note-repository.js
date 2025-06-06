@@ -18,6 +18,7 @@ export class MongoDbNoteRepository extends NoteRepository {
      * Create a new MongoDbNoteRepository
      * @param {string} url - MongoDB connection URL (with or without authentication)
      * @param {string} dbName - Database name to use for storing notes
+     * @returns {MongoDbNoteRepository} New MongoDbNoteRepository instance
      * @example
      * // With authentication
      * const repo = new MongoDbNoteRepository('mongodb://user:pass@localhost:27017', 'my_notes');
