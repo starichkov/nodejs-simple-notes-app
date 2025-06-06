@@ -11,7 +11,7 @@
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",
     "start": "node src/notes-api-server.js",
-    "docs": "jsdoc -c jsdoc.config.json",
+    "docs": "jsdoc -c jsdoc.config.json && node scripts/fix-docs-title.js",
     "docs:watch": "jsdoc -c jsdoc.config.json --watch",
     "docs:version": "node scripts/version-docs.js",
     "docs:serve": "cd docs && python3 -m http.server 8080",
