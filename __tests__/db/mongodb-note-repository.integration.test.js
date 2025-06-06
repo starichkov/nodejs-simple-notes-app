@@ -49,11 +49,11 @@ describe('MongoDbNoteRepository Integration Tests', () => {
 
     beforeEach(async () => {
         try {
-            const notes = await repository.findAll();
+            const notes = await repository.findAll('all'); // Get all notes (active + trashed)
             console.log('Cleaning up notes:', notes);
             for (const note of notes) {
-                console.log(`Deleting note ${note.id}...`);
-                await repository.delete(note.id);
+                console.log(`Permanently deleting note ${note.id}...`);
+                await repository.permanentDelete(note.id);
             }
             console.log('Cleanup completed');
         } catch (error) {
@@ -121,11 +121,11 @@ describe('MongoDbNoteRepository Integration Tests', () => {
             expect(retrievedNote.content).toBe(updatedData.content);
         });
 
-        it('should delete a note', async () => {
-            console.log('\nTest: should delete a note');
+        it('should move note to trash (soft delete)', async () => {
+            console.log('\nTest: should move note to trash (soft delete)');
             const note = await repository.create({
                 title: 'To Delete',
-                content: 'Will be deleted'
+                content: 'Will be moved to trash'
             });
             console.log('Created note to delete:', note);
 
@@ -133,15 +133,17 @@ describe('MongoDbNoteRepository Integration Tests', () => {
             const initialNote = await repository.findById(note.id);
             console.log('Initial note verified:', initialNote);
             expect(initialNote).not.toBeNull();
+            expect(initialNote.deletedAt).toBeNull();
 
-            console.log('Deleting note...');
+            console.log('Moving note to trash...');
             const deleteResult = await repository.delete(note.id);
             console.log('Delete result:', deleteResult);
             expect(deleteResult).toBe(true);
 
-            // Verify note is deleted
-            const deletedNote = await repository.findById(note.id);
-            expect(deletedNote).toBeNull();
+            // Verify note is moved to trash, not permanently deleted
+            const trashedNote = await repository.findById(note.id);
+            expect(trashedNote).not.toBeNull();
+            expect(trashedNote.deletedAt).toBeDefined();
         });
 
         it('should list all notes', async () => {

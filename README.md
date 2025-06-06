@@ -17,8 +17,10 @@ A RESTful API for managing text notes, built with Node.js, Express, and NoSQL da
 ## Features
 
 - Create, read, update, and delete text notes
+- **Trash functionality** - Move notes to trash instead of immediate deletion
+- **Restore notes** from trash or permanently delete them
 - RESTful API design
-- Simple and intuitive web UI
+- Simple and intuitive web UI with tabs for Notes and Trash
 - Database-agnostic architecture
 - Multiple database implementations (CouchDB, MongoDB)
 - Environment-based configuration
@@ -232,9 +234,14 @@ Once the server is running, you can:
 
 ## API Endpoints
 
-### Get all notes
+### Get all active notes
 ```
 GET /api/notes
+```
+
+### Get all trashed notes
+```
+GET /api/notes/trash
 ```
 
 ### Get a note by ID
@@ -264,9 +271,19 @@ Content-Type: application/json
 }
 ```
 
-### Delete a note
+### Move a note to trash (soft delete)
 ```
 DELETE /api/notes/:id
+```
+
+### Restore a note from trash
+```
+POST /api/notes/:id/restore
+```
+
+### Permanently delete a note
+```
+DELETE /api/notes/:id/permanent
 ```
 
 ## Health Check
@@ -285,10 +302,15 @@ http://localhost:3000/
 
 ### UI Features
 
-- View all notes in a responsive grid layout
+- **Tab Navigation**: Switch between "Notes" and "Trash" views
+- **Notes View**: View all active notes in a responsive grid layout
+- **Trash View**: View trashed notes with restore/delete options
 - Create new notes with a modal form
 - Edit existing notes
-- Delete notes with confirmation
+- **Trash Operations**:
+  - Move notes to trash (soft delete) with confirmation
+  - Restore notes from trash back to active status
+  - Permanently delete notes from trash (with strong confirmation)
 - Responsive design that works on desktop and mobile devices
 
 The UI is built with vanilla JavaScript, HTML, and CSS, with no external dependencies. It communicates with the API endpoints described above.

@@ -9,6 +9,7 @@ describe('Note Model', () => {
     expect(note.content).toBe('');
     expect(note.createdAt).toBeInstanceOf(Date);
     expect(note.updatedAt).toBeInstanceOf(Date);
+    expect(note.deletedAt).toBeNull();
   });
 
   test('should create a note with provided values', () => {
@@ -25,6 +26,7 @@ describe('Note Model', () => {
     expect(note.content).toBe(content);
     expect(note.createdAt).toBe(createdAt);
     expect(note.updatedAt).toBe(updatedAt);
+    expect(note.deletedAt).toBeNull();
   });
 
   test('should create a note from an object', () => {
@@ -46,6 +48,7 @@ describe('Note Model', () => {
     expect(note.updatedAt).toBeInstanceOf(Date);
     expect(note.createdAt.toISOString()).toBe(obj.createdAt);
     expect(note.updatedAt.toISOString()).toBe(obj.updatedAt);
+    expect(note.deletedAt).toBeNull();
   });
 
   test('should convert a note to an object', () => {
@@ -58,7 +61,8 @@ describe('Note Model', () => {
       title: note.title,
       content: note.content,
       createdAt: note.createdAt,
-      updatedAt: note.updatedAt
+      updatedAt: note.updatedAt,
+      deletedAt: note.deletedAt
     });
   });
 });
