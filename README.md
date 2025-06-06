@@ -199,7 +199,7 @@ Our simple CI pipeline automatically:
 - **Triggers**: PRs and pushes to main branch
 - **Simple & Fast**: Essential testing only, no complexity
 
-See [GITHUB_ACTIONS.md](GITHUB_ACTIONS.md) for detailed CI documentation.
+See [GITHUB_ACTIONS.md](https://github.com/starichkov/nodejs-simple-notes-app/blob/main/GITHUB_ACTIONS.md) for detailed CI documentation.
 
 #### Test Features
 
@@ -341,7 +341,7 @@ if (DB_VENDOR === 'new-vendor') {
 
 ## 📄 License & Attribution
 
-This project is licensed under the **MIT License** - see the [LICENSE](LICENSE.md) file for details.
+This project is licensed under the **MIT License** - see the [LICENSE](https://github.com/starichkov/nodejs-simple-notes-app/blob/main/LICENSE.md) file for details.
 
 ### Using This Project?
 
