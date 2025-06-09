@@ -112,9 +112,9 @@ For API endpoints, we use a special pattern:
 ```javascript
 /**
  * @name GET /notes
- * @description Retrieve all notes from the database
+ * @description Retrieve all active notes from the database
  * @route GET /
- * @returns {Object[]} 200 - Array of note objects
+ * @returns {Object[]} 200 - Array of active note objects
  * @returns {Object} 500 - Error response
  * @example
  * // Response format:
@@ -122,9 +122,39 @@ For API endpoints, we use a special pattern:
  *   {
  *     "id": "note_123",
  *     "title": "Sample Note",
- *     "content": "This is a sample note content"
+ *     "content": "This is a sample note content",
+ *     "status": "active",
+ *     "deletedAt": null,
+ *     "createdAt": "2023-01-01T00:00:00.000Z",
+ *     "updatedAt": "2023-01-02T00:00:00.000Z"
  *   }
  * ]
+ */
+```
+
+### Trash Functionality API Documentation
+The application now includes comprehensive trash functionality with the following endpoints:
+
+```javascript
+/**
+ * @name GET /notes/trash
+ * @description Retrieve all deleted notes
+ * @route GET /trash
+ * @returns {Object[]} 200 - Array of deleted note objects
+ */
+
+/**
+ * @name POST /notes/:id/restore
+ * @description Restore a note from trash
+ * @route POST /:id/restore
+ * @returns {void} 204 - No content (successful restoration)
+ */
+
+/**
+ * @name DELETE /notes/:id/permanent
+ * @description Permanently delete a note
+ * @route DELETE /:id/permanent
+ * @returns {void} 204 - No content (successful permanent deletion)
  */
 ```
 

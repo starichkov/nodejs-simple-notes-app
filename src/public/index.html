@@ -10,12 +10,26 @@
 <div class="container">
     <header>
         <h1>Notes App</h1>
-        <button id="create-note-btn" class="btn btn-primary">Create New Note</button>
+        <div class="header-actions">
+            <nav class="tabs">
+                <button id="notes-tab" class="tab-button active">Notes</button>
+                <button id="recycle-bin-tab" class="tab-button">Recycle Bin</button>
+            </nav>
+            <button id="create-note-btn" class="btn btn-primary">Create New Note</button>
+        </div>
     </header>
 
     <main>
-        <div id="notes-container">
-            <div class="loading">Loading notes...</div>
+        <div id="notes-view" class="view active">
+            <div id="notes-container">
+                <div class="loading">Loading notes...</div>
+            </div>
+        </div>
+
+        <div id="recycle-bin-view" class="view">
+            <div id="recycle-bin-container">
+                <div class="loading">Loading recycle bin...</div>
+            </div>
         </div>
     </main>
 

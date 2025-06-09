@@ -1,5 +1,3 @@
-version: '3.8'
-
 # Define common environment variables (explicit configuration required)
 x-mongo-variables: &mongo-variables
   MONGODB_USERNAME: ${MONGODB_USERNAME:?MONGODB_USERNAME is required. Please set it in .env file or environment}

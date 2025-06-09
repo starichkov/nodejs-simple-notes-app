@@ -62,11 +62,15 @@ export class CouchDbNoteRepository extends NoteRepository {
                         _id: '_design/notes',
                         views: {
                             all: {
-                                // Define the function as a plain string from the start
                                 map: "function(doc) { if (doc.type === 'note') { emit(doc._id, null); } }"
+                            },
+                            active: {
+                                map: "function(doc) { if (doc.type === 'note' && doc.deletedAt === null) { emit(doc.updatedAt, null); } }"
+                            },
+                            deleted: {
+                                map: "function(doc) { if (doc.type === 'note' && doc.deletedAt !== null) { emit(doc.deletedAt, null); } }"
                             }
                         },
-                        // It's good practice to explicitly add the language
                         language: 'javascript'
                     };
                     await this.db.insert(designDoc);
@@ -81,16 +85,21 @@ export class CouchDbNoteRepository extends NoteRepository {
     }
 
     /**
-     * Find all notes in the database, ordered by document ID
-     * @returns {Promise<Note[]>} Promise resolving to an array of Note objects
+     * Find all active notes (not deleted)
+     * @returns {Promise<Note[]>} Promise resolving to an array of active Note objects
      * @throws {Error} When database query fails or CouchDB is unreachable
      * @example
-     * const notes = await repository.findAll();
-     * console.log(`Found ${notes.length} notes`);
+     * const activeNotes = await repository.findAll();
+     * console.log(`Found ${activeNotes.length} active notes`);
      */
     async findAll() {
         try {
-            const result = await this.db.view('notes', 'all', {update: true, include_docs: true});
+            const result = await this.db.view('notes', 'active', {
+                update: true, 
+                include_docs: true,
+                descending: true // Sort by date descending (newest first)
+            });
+            
             if (!result.rows) {
                 console.log('No rows in view result, returning empty array');
                 return [];
@@ -106,13 +115,56 @@ export class CouchDbNoteRepository extends NoteRepository {
                     id: doc._id,
                     title: doc.title,
                     content: doc.content,
+                    deletedAt: doc.deletedAt,
                     createdAt: new Date(doc.createdAt),
                     updatedAt: new Date(doc.updatedAt)
                 });
             }).filter(note => note !== null);
             return notes;
         } catch (error) {
-            console.error('Failed to find all notes:', error);
+            console.error('Failed to find all active notes:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Find all deleted notes (in recycle bin)
+     * @returns {Promise<Note[]>} Promise resolving to an array of deleted Note objects
+     * @throws {Error} When database query fails or CouchDB is unreachable
+     * @example
+     * const deletedNotes = await repository.findDeleted();
+     * console.log(`Found ${deletedNotes.length} notes in recycle bin`);
+     */
+    async findDeleted() {
+        try {
+            const result = await this.db.view('notes', 'deleted', {
+                update: true, 
+                include_docs: true,
+                descending: true // Sort by deleted date descending (most recently deleted first)
+            });
+            return this._mapResult(result);
+        } catch (error) {
+            console.error('Failed to find deleted notes:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Find all notes regardless of deletion status
+     * @returns {Promise<Note[]>} Promise resolving to an array of all Note objects
+     * @throws {Error} When database query fails or CouchDB is unreachable
+     */
+    async findAllIncludingDeleted() {
+        try {
+            const result = await this.db.view('notes', 'all', {
+                update: true, 
+                include_docs: true,
+                descending: true
+            });
+
+            return this._mapResult(result);
+        } catch (error) {
+            console.error('Failed to find all notes including deleted:', error);
             throw error;
         }
     }
@@ -137,6 +189,7 @@ export class CouchDbNoteRepository extends NoteRepository {
                 id: doc._id,
                 title: doc.title,
                 content: doc.content,
+                deletedAt: doc.deletedAt ? new Date(doc.deletedAt) : null,
                 createdAt: new Date(doc.createdAt),
                 updatedAt: new Date(doc.updatedAt)
             });
@@ -170,6 +223,7 @@ export class CouchDbNoteRepository extends NoteRepository {
                 type: 'note',
                 title: note.title,
                 content: note.content,
+                deletedAt: null,
                 createdAt: now.toISOString(),
                 updatedAt: now.toISOString()
             };
@@ -180,6 +234,7 @@ export class CouchDbNoteRepository extends NoteRepository {
                 id: result.id,
                 title: doc.title,
                 content: doc.content,
+                deletedAt: doc.deletedAt,
                 createdAt: new Date(doc.createdAt),
                 updatedAt: new Date(doc.updatedAt)
             });
@@ -232,6 +287,7 @@ export class CouchDbNoteRepository extends NoteRepository {
                 type: 'note',
                 title: note.title,
                 content: note.content,
+                deletedAt: currentDoc.deletedAt || null,
                 createdAt: currentDoc.createdAt,
                 updatedAt: now.toISOString()
             };
@@ -242,6 +298,7 @@ export class CouchDbNoteRepository extends NoteRepository {
                 id: id,
                 title: note.title,
                 content: note.content,
+                deletedAt: updatedDoc.deletedAt ? new Date(updatedDoc.deletedAt) : null,
                 createdAt: new Date(currentDoc.createdAt),
                 updatedAt: new Date(updatedDoc.updatedAt)
             });
@@ -255,19 +312,107 @@ export class CouchDbNoteRepository extends NoteRepository {
     }
 
     /**
-     * Delete a note from the database
-     * @param {string} id - The ID of the note to delete
-     * @returns {Promise<boolean>} Promise resolving to true if deleted, false if not found
-     * @throws {Error} When deletion fails due to database issues
+     * Move a note to recycle bin (soft delete)
+     * @param {string} id - The ID of the note to move to recycle bin
+     * @returns {Promise<boolean>} Promise resolving to true if moved to recycle bin, false if not found
+     * @throws {Error} When operation fails due to database issues
      * @example
-     * const deleted = await repository.delete('note_123');
-     * if (deleted) {
-     *   console.log('Note deleted successfully');
+     * const moved = await repository.moveToRecycleBin('note_123');
+     * if (moved) {
+     *   console.log('Note moved to recycle bin successfully');
      * } else {
      *   console.log('Note not found');
      * }
      */
-    async delete(id) {
+    async moveToRecycleBin(id) {
+        try {
+            // Get the current document
+            let currentDoc;
+            try {
+                currentDoc = await this.db.get(id);
+            } catch (error) {
+                if (error.statusCode === 404) {
+                    return false;
+                }
+                throw error;
+            }
+
+            const now = new Date();
+            const updatedDoc = {
+                ...currentDoc,
+                deletedAt: now.toISOString(),
+                updatedAt: now.toISOString()
+            };
+
+            await this.db.insert(updatedDoc);
+            return true;
+        } catch (error) {
+            console.error(`Failed to move note to recycle bin with ID ${id}:`, error);
+            if (error.statusCode === 404) {
+                return false;
+            }
+            throw error;
+        }
+    }
+
+    /**
+     * Restore a note from recycle bin
+     * @param {string} id - The ID of the note to restore
+     * @returns {Promise<boolean>} Promise resolving to true if restored, false if not found
+     * @throws {Error} When operation fails due to database issues
+     * @example
+     * const restored = await repository.restore('note_123');
+     * if (restored) {
+     *   console.log('Note restored successfully');
+     * } else {
+     *   console.log('Note not found');
+     * }
+     */
+    async restore(id) {
+        try {
+            // Get the current document
+            let currentDoc;
+            try {
+                currentDoc = await this.db.get(id);
+            } catch (error) {
+                if (error.statusCode === 404) {
+                    return false;
+                }
+                throw error;
+            }
+
+            const now = new Date();
+            const updatedDoc = {
+                ...currentDoc,
+                deletedAt: null,
+                updatedAt: now.toISOString()
+            };
+
+            await this.db.insert(updatedDoc);
+            return true;
+        } catch (error) {
+            console.error(`Failed to restore note with ID ${id}:`, error);
+            if (error.statusCode === 404) {
+                return false;
+            }
+            throw error;
+        }
+    }
+
+    /**
+     * Permanently delete a note from the database
+     * @param {string} id - The ID of the note to permanently delete
+     * @returns {Promise<boolean>} Promise resolving to true if deleted, false if not found
+     * @throws {Error} When deletion fails due to database issues
+     * @example
+     * const deleted = await repository.permanentDelete('note_123');
+     * if (deleted) {
+     *   console.log('Note permanently deleted');
+     * } else {
+     *   console.log('Note not found');
+     * }
+     */
+    async permanentDelete(id) {
         try {
             // Get the current document
             let doc;
@@ -285,8 +430,31 @@ export class CouchDbNoteRepository extends NoteRepository {
             if (error.statusCode === 404) {
                 return false;
             }
-            console.error(`Failed to delete note with ID ${id}:`, error);
+            console.error(`Failed to permanently delete note with ID ${id}:`, error);
             throw error;
         }
+    }
+
+    _mapResult(result) {
+        if (!result.rows) {
+            console.log('No rows in view result, returning empty array');
+            return [];
+        }
+
+        return result.rows.map(row => {
+            if (!row.doc) {
+                console.log('Row without doc:', row);
+                return null;
+            }
+            const doc = row.doc;
+            return Note.fromObject({
+                id: doc._id,
+                title: doc.title,
+                content: doc.content,
+                deletedAt: doc.deletedAt ? new Date(doc.deletedAt) : null,
+                createdAt: new Date(doc.createdAt),
+                updatedAt: new Date(doc.updatedAt)
+            });
+        }).filter(note => note !== null);
     }
 }
