@@ -99,7 +99,7 @@ export class CouchDbNoteRepository extends NoteRepository {
                 include_docs: true,
                 descending: true // Sort by date descending (newest first)
             });
-            
+
             if (!result.rows) {
                 console.log('No rows in view result, returning empty array');
                 return [];
@@ -436,7 +436,7 @@ export class CouchDbNoteRepository extends NoteRepository {
     }
 
     _mapResult(result) {
-        if (!result.rows) {
+        if (!result || !result.rows) {
             console.log('No rows in view result, returning empty array');
             return [];
         }
