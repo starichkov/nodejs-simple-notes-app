@@ -54,7 +54,7 @@ export class NotesServer {
          * @private
          */
         this.server = null;
-        
+
         /**
          * Express application instance
          * @type {express.Application}
@@ -139,10 +139,10 @@ export class NotesServer {
         try {
             // Clear any existing middleware/routes for testing
             this.app._router = undefined;
-            
+
             // Security middleware
             this.app.use(helmet());
-            
+
             // CORS middleware for cross-origin requests
             this.app.use(cors());
 
@@ -154,7 +154,7 @@ export class NotesServer {
 
             // Use provided repository or create default one
             const repository = noteRepository || this.createNoteRepository();
-            
+
             // Initialize the repository
             await repository.init();
             console.log('Repository initialized successfully');
@@ -181,12 +181,12 @@ export class NotesServer {
             // Error handling middleware
             this.app.use((err, req, res, next) => {
                 console.error('Unhandled error:', err);
-                
+
                 // Handle JSON parsing errors
                 if (err.type === 'entity.parse.failed') {
                     return res.status(400).json({ error: 'Invalid JSON' });
                 }
-                
+
                 // Default to 500 for other errors
                 res.status(500).json({error: 'Internal server error'});
             });
@@ -211,8 +211,10 @@ export class NotesServer {
      * console.log('Server started successfully');
      */
     startServer() {
-        this.server = this.app.listen(PORT, HOST, () => {
-            console.log(`Notes API server is running at http://${HOST}:${PORT}`);
+        // Convert PORT to number to ensure correct type for the test
+        const port = parseInt(PORT, 10);
+        this.server = this.app.listen(port, HOST, () => {
+            console.log(`Notes API server is running at http://${HOST}:${port}`);
             console.log('Available endpoints:');
             console.log('  GET    /                - Web UI for notes management');
             console.log('  GET    /api/notes       - Get all notes');
@@ -221,7 +223,7 @@ export class NotesServer {
             console.log('  PUT    /api/notes/:id   - Update a note');
             console.log('  DELETE /api/notes/:id   - Delete a note');
             console.log('  GET    /health          - Health check');
-            console.log('\nOpen your browser at http://localhost:' + PORT + ' to use the Notes UI');
+            console.log('\nOpen your browser at http://localhost:' + port + ' to use the Notes UI');
         });
 
         // Handle graceful shutdown

@@ -1,5 +1,3 @@
-version: '3.8'
-
 # Define common environment variables (explicit configuration required)
 x-couchdb-variables: &couchdb-variables
   COUCHDB_USERNAME: ${COUCHDB_USERNAME:?COUCHDB_USERNAME is required. Please set it in .env file or environment}

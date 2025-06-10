@@ -14,10 +14,10 @@ export default {
   coverageDirectory: "coverage",
   coverageThreshold: {
     global: {
-      branches: 81,
-      functions: 88,
-      lines: 89,
-      statements: 88
+      branches: 86,
+      functions: 92,
+      lines: 94,
+      statements: 93
     }
   },
   verbose: true

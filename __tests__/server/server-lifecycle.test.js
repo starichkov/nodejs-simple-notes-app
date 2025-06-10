@@ -15,12 +15,12 @@ let mockServer;
 describe('Server Lifecycle Tests', () => {
     beforeEach(() => {
         jest.clearAllMocks();
-        
+
         // Ensure we start with real timers
         if (jest.isMockFunction(setTimeout)) {
             jest.useRealTimers();
         }
-        
+
         // Create a mock server object
         mockServer = {
             listen: jest.fn(),
@@ -34,10 +34,10 @@ describe('Server Lifecycle Tests', () => {
         if (mockServer && mockServer.close) {
             mockServer.close();
         }
-        
+
         // Clear any active timers to prevent leaks
         jest.clearAllTimers();
-        
+
         // Ensure we're using real timers after each test
         if (jest.isMockFunction(setTimeout)) {
             jest.useRealTimers();
@@ -65,7 +65,7 @@ describe('Server Lifecycle Tests', () => {
             // Create multiple instances - each is independent
             const server1 = new NotesServer();
             const server2 = new NotesServer();
-            
+
             expect(server1.server).toBe(null);
             expect(server2.server).toBe(null);
             expect(server1).not.toBe(server2);
@@ -74,7 +74,7 @@ describe('Server Lifecycle Tests', () => {
 
         it('should handle server lifecycle with instance methods', () => {
             const notesServer = new NotesServer();
-            
+
             // Mock app.listen on the instance
             const mockListen = jest.spyOn(notesServer.app, 'listen').mockImplementation((port, host, callback) => {
                 if (callback) callback();
@@ -82,7 +82,7 @@ describe('Server Lifecycle Tests', () => {
             });
 
             const server = notesServer.startServer();
-            
+
             expect(mockListen).toHaveBeenCalledWith(
                 expect.any(Number),
                 expect.any(String),
@@ -97,62 +97,82 @@ describe('Server Lifecycle Tests', () => {
         it('should create repositories with instance method', async () => {
             // Test with fresh import to get updated environment variables
             const originalEnv = process.env.DB_VENDOR;
-            
+
             // Test MongoDB repository creation
             process.env.DB_VENDOR = 'mongodb';
             const serverModuleMongo = await import('../../src/notes-api-server.js?' + Date.now());
             const notesServerMongo = new serverModuleMongo.NotesServer();
             const mongoRepo = notesServerMongo.createNoteRepository();
             expect(mongoRepo.constructor.name).toBe('MongoDbNoteRepository');
-            
+
             // Test CouchDB repository creation
             process.env.DB_VENDOR = 'couchdb';
             const serverModuleCouch = await import('../../src/notes-api-server.js?' + Date.now());
             const notesServerCouch = new serverModuleCouch.NotesServer();
             const couchRepo = notesServerCouch.createNoteRepository();
             expect(couchRepo.constructor.name).toBe('CouchDbNoteRepository');
-            
+
             process.env.DB_VENDOR = originalEnv;
         });
 
         it('should handle graceful shutdown with instance state', async () => {
             const notesServer = new NotesServer();
-            
+
             // Mock server with close method that calls callback immediately
             const mockClose = jest.fn((callback) => {
                 // Call callback immediately to simulate successful shutdown
                 callback();
             });
             notesServer.server = { close: mockClose };
-            
+
             // Mock clearTimeout to track if it's called
             const mockClearTimeout = jest.spyOn(global, 'clearTimeout');
-            
+
             notesServer.gracefulShutdown();
-            
+
             // Verify the shutdown process
             expect(mockConsoleLog).toHaveBeenCalledWith('Shutting down gracefully...');
             expect(mockClose).toHaveBeenCalled();
             expect(mockConsoleLog).toHaveBeenCalledWith('HTTP server closed');
             expect(mockClearTimeout).toHaveBeenCalled(); // Timeout should be cleared
             expect(mockExit).toHaveBeenCalledWith(0);
-            
+
             mockClearTimeout.mockRestore();
         });
 
         it('should initialize app with instance-specific configuration', async () => {
             const notesServer = new NotesServer();
-            
+
             // Mock repository
             const mockRepository = {
                 init: jest.fn().mockResolvedValue(undefined)
             };
-            
+
             const result = await notesServer.initializeApp(mockRepository);
-            
+
             expect(result.app).toBe(notesServer.app);
             expect(result.repository).toBe(mockRepository);
             expect(mockRepository.init).toHaveBeenCalled();
         });
+
+        it('should create repository when none is provided', async () => {
+            const notesServer = new NotesServer();
+
+            // Mock createNoteRepository method
+            const mockRepository = {
+                init: jest.fn().mockResolvedValue(undefined)
+            };
+            const createRepoSpy = jest.spyOn(notesServer, 'createNoteRepository')
+                .mockReturnValue(mockRepository);
+
+            const result = await notesServer.initializeApp();
+
+            expect(createRepoSpy).toHaveBeenCalled();
+            expect(result.app).toBe(notesServer.app);
+            expect(result.repository).toBe(mockRepository);
+            expect(mockRepository.init).toHaveBeenCalled();
+
+            createRepoSpy.mockRestore();
+        });
     });
-}); 
+});
