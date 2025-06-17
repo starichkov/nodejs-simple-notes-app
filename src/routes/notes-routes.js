@@ -138,6 +138,32 @@ export function createNotesRouter(noteRepository) {
     });
 
     /**
+     * @name POST /notes/recycle-bin/restore-all
+     * @description Restore all notes from recycle bin
+     * @route POST /recycle-bin/restore-all
+     * @returns {Object} 200 - Success response with count of restored notes
+     * @returns {Object} 500 - Server error response
+     * @example
+     * // Response format (200):
+     * {
+     *   "message": "All notes restored successfully",
+     *   "restoredCount": 5
+     * }
+     */
+    router.post('/recycle-bin/restore-all', async (req, res) => {
+        try {
+            const restoredCount = await noteRepository.restoreAll();
+            res.json({ 
+                message: 'All notes restored successfully',
+                restoredCount 
+            });
+        } catch (error) {
+            console.error('Error restoring all notes:', error);
+            res.status(500).json({ error: 'Failed to restore all notes' });
+        }
+    });
+
+    /**
      * @name GET /notes/:id
      * @description Retrieve a specific note by its ID
      * @route GET /:id

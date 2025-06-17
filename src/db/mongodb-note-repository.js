@@ -203,9 +203,9 @@ export class MongoDbNoteRepository extends NoteRepository {
                 createdAt: now,
                 updatedAt: now
             });
-            
+
             const savedNote = await newNote.save();
-            
+
             return Note.fromObject({
                 id: savedNote._id.toString(),
                 title: savedNote.title,
@@ -251,11 +251,11 @@ export class MongoDbNoteRepository extends NoteRepository {
                 },
                 { new: true } // Return the updated document
             );
-            
+
             if (!updatedDoc) {
                 return null;
             }
-            
+
             return Note.fromObject({
                 id: updatedDoc._id.toString(),
                 title: updatedDoc.title,
@@ -379,6 +379,31 @@ export class MongoDbNoteRepository extends NoteRepository {
             return result.deletedCount || 0;
         } catch (error) {
             console.error('Failed to empty recycle bin:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Restore all notes from recycle bin
+     * @returns {Promise<number>} Promise resolving to the number of notes restored
+     * @throws {Error} When operation fails due to database issues
+     * @example
+     * const restoredCount = await repository.restoreAll();
+     * console.log(`Restored ${restoredCount} notes from recycle bin`);
+     */
+    async restoreAll() {
+        try {
+            const now = new Date();
+            const result = await this.NoteModel.updateMany(
+                { deletedAt: { $ne: null } },
+                {
+                    deletedAt: null,
+                    updatedAt: now
+                }
+            );
+            return result.modifiedCount || 0;
+        } catch (error) {
+            console.error('Failed to restore all notes from recycle bin:', error);
             throw error;
         }
     }

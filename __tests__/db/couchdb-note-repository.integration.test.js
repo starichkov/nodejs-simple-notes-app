@@ -766,5 +766,44 @@ describe('CouchDbNoteRepository Integration Tests', () => {
             const deletedCount = await repository.emptyRecycleBin();
             expect(deletedCount).toBe(0);
         });
+
+        it('should restore all notes from recycle bin', async () => {
+            // Create some notes
+            const note1 = await repository.create({
+                title: 'Restore All Test 1',
+                content: 'This note will be restored from recycle bin'
+            });
+            const note2 = await repository.create({
+                title: 'Restore All Test 2',
+                content: 'This note will also be restored from recycle bin'
+            });
+            const note3 = await repository.create({
+                title: 'Restore All Test 3',
+                content: 'This note will stay active'
+            });
+
+            // Move two notes to recycle bin
+            await repository.moveToRecycleBin(note1.id);
+            await repository.moveToRecycleBin(note2.id);
+
+            // Verify they're in recycle bin
+            let deletedNotes = await repository.findDeleted();
+            expect(deletedNotes.length).toBe(2);
+
+            // Restore all notes from recycle bin
+            const restoredCount = await repository.restoreAll();
+            expect(restoredCount).toBe(2);
+
+            // Verify all notes are now active
+            const activeNotes = await repository.findAll();
+            expect(activeNotes.length).toBe(3);
+            expect(activeNotes.some(n => n.id === note1.id)).toBe(true);
+            expect(activeNotes.some(n => n.id === note2.id)).toBe(true);
+            expect(activeNotes.some(n => n.id === note3.id)).toBe(true);
+
+            // Verify recycle bin is empty
+            deletedNotes = await repository.findDeleted();
+            expect(deletedNotes.length).toBe(0);
+        });
     });
 });

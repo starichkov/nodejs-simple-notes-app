@@ -91,6 +91,14 @@ export class NoteRepository {
     }
 
     /**
+     * Restore all notes from recycle bin
+     * @returns {Promise<number>} Promise resolving to the number of notes restored
+     */
+    async restoreAll() {
+        throw new Error('Method not implemented');
+    }
+
+    /**
      * Count the number of deleted notes in recycle bin
      * @returns {Promise<number>} Promise resolving to the count of deleted notes
      */

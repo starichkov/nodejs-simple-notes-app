@@ -91,6 +91,19 @@ class MockNoteRepository {
     return deletedCount;
   }
 
+  async restoreAll() {
+    const deletedNotes = this.notes.filter(note => note.deletedAt !== null);
+    const restoredCount = deletedNotes.length;
+
+    // Restore all deleted notes
+    for (const note of deletedNotes) {
+      note.deletedAt = null;
+      note.updatedAt = new Date();
+    }
+
+    return restoredCount;
+  }
+
   async countDeleted() {
     return this.notes.filter(note => note.deletedAt !== null).length;
   }
@@ -485,7 +498,7 @@ describe('Notes Routes', () => {
       const note1 = await repository.create({ title: 'Note 1', content: 'Content 1' });
       const note2 = await repository.create({ title: 'Note 2', content: 'Content 2' });
       const note3 = await repository.create({ title: 'Note 3', content: 'Content 3' });
-      
+
       await repository.moveToRecycleBin(note1.id);
       await repository.moveToRecycleBin(note2.id);
 
@@ -523,7 +536,7 @@ describe('Notes Routes', () => {
       const note1 = await repository.create({ title: 'Note 1', content: 'Content 1' });
       const note2 = await repository.create({ title: 'Note 2', content: 'Content 2' });
       const note3 = await repository.create({ title: 'Note 3', content: 'Content 3' });
-      
+
       await repository.moveToRecycleBin(note1.id);
       await repository.moveToRecycleBin(note2.id);
 
@@ -563,6 +576,54 @@ describe('Notes Routes', () => {
 
       expect(response.status).toBe(500);
       expect(response.body.error).toBe('Failed to empty recycle bin');
+    });
+  });
+
+  describe('POST /api/notes/recycle-bin/restore-all', () => {
+    test('should restore all notes from recycle bin and return count', async () => {
+      // Add some notes and delete some
+      const note1 = await repository.create({ title: 'Note 1', content: 'Content 1' });
+      const note2 = await repository.create({ title: 'Note 2', content: 'Content 2' });
+      const note3 = await repository.create({ title: 'Note 3', content: 'Content 3' });
+
+      await repository.moveToRecycleBin(note1.id);
+      await repository.moveToRecycleBin(note2.id);
+
+      const response = await request(app).post('/api/notes/recycle-bin/restore-all');
+
+      expect(response.status).toBe(200);
+      expect(response.body.message).toBe('All notes restored successfully');
+      expect(response.body.restoredCount).toBe(2);
+
+      // Verify all notes are now active
+      const activeNotes = await repository.findAll();
+      expect(activeNotes.length).toBe(3);
+
+      // Verify recycle bin is empty
+      const deletedNotes = await repository.findDeleted();
+      expect(deletedNotes.length).toBe(0);
+    });
+
+    test('should return zero when recycle bin is already empty', async () => {
+      // Add some active notes only
+      await repository.create({ title: 'Active Note', content: 'Content' });
+
+      const response = await request(app).post('/api/notes/recycle-bin/restore-all');
+
+      expect(response.status).toBe(200);
+      expect(response.body.message).toBe('All notes restored successfully');
+      expect(response.body.restoredCount).toBe(0);
+    });
+
+    test('should handle repository errors', async () => {
+      repository.restoreAll = async () => {
+        throw new Error('Database error');
+      };
+
+      const response = await request(app).post('/api/notes/recycle-bin/restore-all');
+
+      expect(response.status).toBe(500);
+      expect(response.body.error).toBe('Failed to restore all notes');
     });
   });
 });

@@ -77,7 +77,7 @@ export class CouchDbNoteRepository extends NoteRepository {
                     existingDoc.views.all && 
                     existingDoc.views.active && 
                     existingDoc.views.deleted;
-                
+
                 if (!hasAllViews) {
                     // Update the existing design doc with all views
                     expectedDesignDoc._rev = existingDoc._rev;
@@ -475,6 +475,35 @@ export class CouchDbNoteRepository extends NoteRepository {
             return deleteCount;
         } catch (error) {
             console.error('Failed to empty recycle bin:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Restore all notes from recycle bin
+     * @returns {Promise<number>} Promise resolving to the number of notes restored
+     * @throws {Error} When operation fails due to database issues
+     * @example
+     * const restoredCount = await repository.restoreAll();
+     * console.log(`Restored ${restoredCount} notes from recycle bin`);
+     */
+    async restoreAll() {
+        try {
+            // Get all deleted notes
+            const deletedNotes = await this.findDeleted();
+            let restoreCount = 0;
+
+            // Restore each one
+            for (const note of deletedNotes) {
+                const restored = await this.restore(note.id);
+                if (restored) {
+                    restoreCount++;
+                }
+            }
+
+            return restoreCount;
+        } catch (error) {
+            console.error('Failed to restore all notes from recycle bin:', error);
             throw error;
         }
     }

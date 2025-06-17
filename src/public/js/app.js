@@ -70,9 +70,9 @@ async function updateRecycleBinCount() {
             recycleBinTab.textContent = 'Recycle Bin';
         }
 
-        // If we're in recycle bin view, update the Empty Recycle Bin button
+        // If we're in recycle bin view, update the recycle bin buttons
         if (currentView === 'recycleBin') {
-            addEmptyRecycleBinButton(count);
+            addRecycleBinButtons(count);
         }
     } catch (error) {
         console.error('Error fetching recycle bin count:', error);
@@ -82,26 +82,40 @@ async function updateRecycleBinCount() {
 }
 
 /**
- * Add the Empty Recycle Bin button to the header actions
+ * Add the Restore All and Empty Recycle Bin buttons to the header actions
  * @param {number} count - The number of notes in the recycle bin
  * @returns {void}
  */
-function addEmptyRecycleBinButton(count) {
-    // Remove existing button if it exists
-    const existingBtn = document.getElementById('empty-recycle-bin-btn');
-    if (existingBtn) {
-        existingBtn.remove();
+function addRecycleBinButtons(count) {
+    // Remove existing buttons if they exist
+    const existingEmptyBtn = document.getElementById('empty-recycle-bin-btn');
+    if (existingEmptyBtn) {
+        existingEmptyBtn.remove();
     }
 
-    // Only add the button if there are notes to delete
+    const existingRestoreAllBtn = document.getElementById('restore-all-btn');
+    if (existingRestoreAllBtn) {
+        existingRestoreAllBtn.remove();
+    }
+
+    // Only add the buttons if there are notes in the recycle bin
     if (count > 0) {
+        // Create Restore All button
+        const restoreAllButton = document.createElement('button');
+        restoreAllButton.id = 'restore-all-btn';
+        restoreAllButton.className = 'btn btn-primary';
+        restoreAllButton.textContent = `Restore All (${count})`;
+        restoreAllButton.addEventListener('click', restoreAllNotes);
+
+        // Create Empty Recycle Bin button
         const emptyBinButton = document.createElement('button');
         emptyBinButton.id = 'empty-recycle-bin-btn';
         emptyBinButton.className = 'btn btn-danger';
         emptyBinButton.textContent = `Empty Recycle Bin (${count})`;
         emptyBinButton.addEventListener('click', emptyRecycleBin);
 
-        // Add to header actions
+        // Add to header actions in the correct order
+        headerActions.appendChild(restoreAllButton);
         headerActions.appendChild(emptyBinButton);
     }
 }
@@ -121,10 +135,14 @@ function switchToView(view) {
         notesView.classList.add('active');
         recycleBinView.classList.remove('active');
         createNoteBtn.style.display = 'block';
-        // Remove Empty Recycle Bin button if it exists
+        // Remove recycle bin buttons if they exist
         const emptyBinBtn = document.getElementById('empty-recycle-bin-btn');
         if (emptyBinBtn) {
             emptyBinBtn.remove();
+        }
+        const restoreAllBtn = document.getElementById('restore-all-btn');
+        if (restoreAllBtn) {
+            restoreAllBtn.remove();
         }
         fetchNotes();
     } else {
@@ -134,11 +152,11 @@ function switchToView(view) {
         notesView.classList.remove('active');
         createNoteBtn.style.display = 'none';
         fetchDeletedNotes();
-        // Get the count of deleted notes to add the Empty Recycle Bin button
+        // Get the count of deleted notes to add the recycle bin buttons
         fetch(`${API_URL}/recycle-bin/count`)
             .then(response => response.json())
             .then(data => {
-                addEmptyRecycleBinButton(data.count);
+                addRecycleBinButtons(data.count);
             })
             .catch(error => console.error('Error fetching recycle bin count:', error));
     }
@@ -246,8 +264,8 @@ function displayDeletedNotes(notes) {
     // Add event listeners using event delegation
     recycleBinContainer.addEventListener('click', handleRecycleBinActions);
 
-    // Update the Empty Recycle Bin button in the header
-    addEmptyRecycleBinButton(notes.length);
+    // Update the recycle bin buttons in the header
+    addRecycleBinButtons(notes.length);
 }
 
 /**
@@ -455,6 +473,37 @@ async function emptyRecycleBin() {
         updateRecycleBinCount(); // Update count after emptying
     } catch (error) {
         console.error('Error emptying recycle bin:', error);
+        alert(`Error: ${error.message}`);
+    }
+}
+
+/**
+ * Restore all notes from recycle bin
+ * @async
+ * @returns {Promise<void>}
+ * @throws {Error} When restore all fails
+ */
+async function restoreAllNotes() {
+    if (!confirm('Are you sure you want to restore ALL notes from the recycle bin?')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_URL}/recycle-bin/restore-all`, {
+            method: 'POST'
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to restore all notes');
+        }
+
+        const data = await response.json();
+        alert(`Successfully restored ${data.restoredCount} notes from recycle bin.`);
+
+        fetchDeletedNotes();
+        updateRecycleBinCount(); // Update count after restoring
+    } catch (error) {
+        console.error('Error restoring all notes:', error);
         alert(`Error: ${error.message}`);
     }
 }
