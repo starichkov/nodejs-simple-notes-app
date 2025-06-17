@@ -1,5 +1,5 @@
 # Build stage for applying security updates
-FROM mongo:7.0.20-jammy AS build
+FROM mongo:7.0.21-jammy AS build
 
 # Update and install security patches
 # Use apt-get instead of apt for better script compatibility
@@ -16,8 +16,8 @@ FROM build AS production
 
 # Add Dockerfile Labels
 LABEL title="MongoDB with Security Updates"
-LABEL description="MongoDB based on official mongo:7.0.20-jammy image with all security patches applied"
-LABEL version="7.0.20"
+LABEL description="MongoDB based on official mongo:7.0.21-jammy image with all security patches applied"
+LABEL version="7.0.21"
 LABEL maintainer="Vadim Starichkov <starichkovva@gmail.com>"
 LABEL license="MIT"
 LABEL source="https://github.com/starichkov/nodejs-simple-notes-app.git"
