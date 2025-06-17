@@ -132,22 +132,50 @@ For API endpoints, we use a special pattern:
  */
 ```
 
-### Trash Functionality API Documentation
-The application now includes comprehensive trash functionality with the following endpoints:
+### Recycle Bin Functionality API Documentation
+The application now includes comprehensive recycle bin functionality with the following endpoints:
 
 ```javascript
 /**
- * @name GET /notes/trash
- * @description Retrieve all deleted notes
- * @route GET /trash
+ * @name GET /notes/recycle-bin
+ * @description Retrieve all deleted notes from the recycle bin
+ * @route GET /recycle-bin
  * @returns {Object[]} 200 - Array of deleted note objects
  */
 
 /**
+ * @name GET /notes/recycle-bin/count
+ * @description Get the count of notes in recycle bin
+ * @route GET /recycle-bin/count
+ * @returns {Object} 200 - Count response with format { "count": 5 }
+ */
+
+/**
+ * @name DELETE /notes/recycle-bin
+ * @description Empty the recycle bin by permanently deleting all deleted notes
+ * @route DELETE /recycle-bin
+ * @returns {Object} 200 - Success response with count of deleted notes
+ */
+
+/**
+ * @name POST /notes/recycle-bin/restore-all
+ * @description Restore all notes from recycle bin
+ * @route POST /recycle-bin/restore-all
+ * @returns {Object} 200 - Success response with count of restored notes
+ */
+
+/**
  * @name POST /notes/:id/restore
- * @description Restore a note from trash
+ * @description Restore a note from recycle bin
  * @route POST /:id/restore
  * @returns {void} 204 - No content (successful restoration)
+ */
+
+/**
+ * @name DELETE /notes/:id
+ * @description Move a note to recycle bin (soft delete)
+ * @route DELETE /:id
+ * @returns {void} 204 - No content (successful move to recycle bin)
  */
 
 /**
@@ -157,6 +185,8 @@ The application now includes comprehensive trash functionality with the followin
  * @returns {void} 204 - No content (successful permanent deletion)
  */
 ```
+
+Note: The `/notes/trash` endpoint is still available for backward compatibility but is deprecated. Use `/notes/recycle-bin` instead.
 
 This creates comprehensive API documentation in the Global section.
 
@@ -288,14 +318,14 @@ jobs:
       - Checkout code
       - Setup Node.js 22 (LTS)
       - Install dependencies
-      
+
       # 2. Build
       - Generate documentation
-      
+
       # 3. Quality checks
       - Check for broken links
       - Validate JSDoc coverage
-      
+
       # 4. Deploy (main branch only)
       - Deploy to GitHub Pages
 ```

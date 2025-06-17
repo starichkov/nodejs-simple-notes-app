@@ -17,10 +17,10 @@ A RESTful API for managing text notes, built with Node.js, Express, and NoSQL da
 ## Features
 
 - Create, read, update, and delete text notes
-- **Trash functionality** - Move notes to trash instead of immediate deletion
-- **Restore notes** from trash or permanently delete them
+- **Recycle bin functionality** - Move notes to recycle bin instead of immediate deletion
+- **Restore notes** from recycle bin or permanently delete them
 - RESTful API design
-- Simple and intuitive web UI with tabs for Notes and Trash
+- Simple and intuitive web UI with tabs for Notes and Recycle Bin
 - Database-agnostic architecture
 - Multiple database implementations (CouchDB, MongoDB)
 - Environment-based configuration
@@ -257,8 +257,10 @@ GET /api/notes
 
 ### Get all deleted notes
 ```
-GET /api/notes/trash
+GET /api/notes/recycle-bin
 ```
+
+Note: The `/api/notes/trash` endpoint is still available for backward compatibility but is deprecated.
 
 ### Get a note by ID
 ```
@@ -287,12 +289,12 @@ Content-Type: application/json
 }
 ```
 
-### Move a note to trash (soft delete)
+### Move a note to recycle bin (soft delete)
 ```
 DELETE /api/notes/:id
 ```
 
-### Restore a note from trash
+### Restore a note from recycle bin
 ```
 POST /api/notes/:id/restore
 ```
@@ -300,6 +302,21 @@ POST /api/notes/:id/restore
 ### Permanently delete a note
 ```
 DELETE /api/notes/:id/permanent
+```
+
+### Get count of notes in recycle bin
+```
+GET /api/notes/recycle-bin/count
+```
+
+### Empty recycle bin (permanently delete all notes in recycle bin)
+```
+DELETE /api/notes/recycle-bin
+```
+
+### Restore all notes from recycle bin
+```
+POST /api/notes/recycle-bin/restore-all
 ```
 
 ## Health Check
@@ -318,15 +335,15 @@ http://localhost:3000/
 
 ### UI Features
 
-- **Tab Navigation**: Switch between "Notes" and "Trash" views
+- **Tab Navigation**: Switch between "Notes" and "Recycle Bin" views
 - **Notes View**: View all active notes in a responsive grid layout
 - **Recycle Bin View**: View deleted notes with restore/permanently delete options
 - Create new notes with a modal form
 - Edit existing notes
-- **Trash Operations**:
-  - Move notes to trash (soft delete) with confirmation
-  - Restore notes from trash back to active status
-  - Permanently delete notes from trash (with strong confirmation)
+- **Recycle Bin Operations**:
+  - Move notes to recycle bin (soft delete) with confirmation
+  - Restore notes from recycle bin back to active status
+  - Permanently delete notes from recycle bin (with strong confirmation)
 - Responsive design that works on desktop and mobile devices
 
 The UI is built with vanilla JavaScript, HTML, and CSS, with no external dependencies. It communicates with the API endpoints described above.
