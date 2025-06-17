@@ -27,6 +27,7 @@ const API_URL = '/api/notes';
 document.addEventListener('DOMContentLoaded', () => {
     fetchNotes();
     initializeTabs();
+    updateRecycleBinCount(); // Initialize count on page load
 });
 createNoteBtn.addEventListener('click', openCreateNoteModal);
 closeBtn.addEventListener('click', closeModal);
@@ -45,6 +46,33 @@ window.addEventListener('click', (e) => {
 function initializeTabs() {
     notesTab.addEventListener('click', () => switchToView('notes'));
     recycleBinTab.addEventListener('click', () => switchToView('recycleBin'));
+}
+
+/**
+ * Fetch and update the recycle bin count in the tab
+ * @async
+ * @returns {Promise<void>}
+ */
+async function updateRecycleBinCount() {
+    try {
+        const response = await fetch(`${API_URL}/recycle-bin/count`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch recycle bin count');
+        }
+        const data = await response.json();
+        const count = data.count;
+        
+        // Update tab text with count
+        if (count > 0) {
+            recycleBinTab.textContent = `Recycle Bin (${count})`;
+        } else {
+            recycleBinTab.textContent = 'Recycle Bin';
+        }
+    } catch (error) {
+        console.error('Error fetching recycle bin count:', error);
+        // Keep default text on error
+        recycleBinTab.textContent = 'Recycle Bin';
+    }
 }
 
 /**
@@ -71,6 +99,8 @@ function switchToView(view) {
         createNoteBtn.style.display = 'none';
         fetchDeletedNotes();
     }
+    // Update count whenever switching views
+    updateRecycleBinCount();
 }
 
 /**
@@ -153,7 +183,14 @@ function displayDeletedNotes(notes) {
         return;
     }
 
-    recycleBinContainer.innerHTML = notes.map(note => {
+    // Add Empty Recycle Bin button at the top
+    const emptyBinButton = `
+        <div class="recycle-bin-actions">
+            <button id="empty-recycle-bin-btn" class="btn btn-danger">Empty Recycle Bin (${notes.length})</button>
+        </div>
+    `;
+
+    const notesHTML = notes.map(note => {
         const deletedDate = new Date(note.deletedAt).toLocaleDateString();
         return `
             <div class="note-card deleted" data-id="${note.id}">
@@ -168,8 +205,16 @@ function displayDeletedNotes(notes) {
         `;
     }).join('');
 
+    recycleBinContainer.innerHTML = emptyBinButton + notesHTML;
+
     // Add event listeners using event delegation
     recycleBinContainer.addEventListener('click', handleRecycleBinActions);
+    
+    // Add event listener for empty recycle bin button
+    const emptyBinBtn = document.getElementById('empty-recycle-bin-btn');
+    if (emptyBinBtn) {
+        emptyBinBtn.addEventListener('click', emptyRecycleBin);
+    }
 }
 
 /**
@@ -289,6 +334,7 @@ async function moveToRecycleBin(id) {
         }
 
         fetchNotes();
+        updateRecycleBinCount(); // Update count after moving to recycle bin
     } catch (error) {
         console.error('Error moving note to recycle bin:', error);
         alert(`Error: ${error.message}`);
@@ -313,6 +359,7 @@ async function restoreNote(id) {
         }
 
         fetchDeletedNotes();
+        updateRecycleBinCount(); // Update count after restore
     } catch (error) {
         console.error('Error restoring note:', error);
         alert(`Error: ${error.message}`);
@@ -341,8 +388,40 @@ async function permanentDeleteNote(id) {
         }
 
         fetchDeletedNotes();
+        updateRecycleBinCount(); // Update count after permanent deletion
     } catch (error) {
         console.error('Error permanently deleting note:', error);
+        alert(`Error: ${error.message}`);
+    }
+}
+
+/**
+ * Empty the recycle bin by permanently deleting all deleted notes
+ * @async
+ * @returns {Promise<void>}
+ * @throws {Error} When empty recycle bin fails
+ */
+async function emptyRecycleBin() {
+    if (!confirm('Are you sure you want to permanently delete ALL notes in the recycle bin? This action cannot be undone.')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_URL}/recycle-bin`, {
+            method: 'DELETE'
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to empty recycle bin');
+        }
+
+        const data = await response.json();
+        alert(`Successfully deleted ${data.deletedCount} notes from recycle bin.`);
+        
+        fetchDeletedNotes();
+        updateRecycleBinCount(); // Update count after emptying
+    } catch (error) {
+        console.error('Error emptying recycle bin:', error);
         alert(`Error: ${error.message}`);
     }
 }

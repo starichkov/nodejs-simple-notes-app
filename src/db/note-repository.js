@@ -81,4 +81,20 @@ export class NoteRepository {
     async permanentDelete(id) {
         throw new Error('Method not implemented');
     }
+
+    /**
+     * Empty the recycle bin by permanently deleting all deleted notes
+     * @returns {Promise<number>} Promise resolving to the number of notes permanently deleted
+     */
+    async emptyRecycleBin() {
+        throw new Error('Method not implemented');
+    }
+
+    /**
+     * Count the number of deleted notes in recycle bin
+     * @returns {Promise<number>} Promise resolving to the count of deleted notes
+     */
+    async countDeleted() {
+        throw new Error('Method not implemented');
+    }
 }

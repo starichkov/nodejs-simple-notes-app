@@ -166,6 +166,22 @@ header {
     font-style: italic;
 }
 
+/* Recycle bin actions */
+.recycle-bin-actions {
+    background-color: white;
+    border-radius: 4px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    padding: 15px;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.recycle-bin-actions #empty-recycle-bin-btn {
+    padding: 10px 20px;
+    font-size: 16px;
+    font-weight: bold;
+}
+
 .loading {
     text-align: center;
     padding: 20px;

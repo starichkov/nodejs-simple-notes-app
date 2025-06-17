@@ -84,6 +84,17 @@ class MockNoteRepository {
     return true;
   }
 
+  async emptyRecycleBin() {
+    const deletedNotes = this.notes.filter(note => note.deletedAt !== null);
+    const deletedCount = deletedNotes.length;
+    this.notes = this.notes.filter(note => note.deletedAt === null);
+    return deletedCount;
+  }
+
+  async countDeleted() {
+    return this.notes.filter(note => note.deletedAt !== null).length;
+  }
+
   async delete(id) {
     return this.moveToRecycleBin(id);
   }
@@ -465,6 +476,93 @@ describe('Notes Routes', () => {
 
       expect(response.status).toBe(500);
       expect(response.body.error).toBe('Failed to permanently delete note');
+    });
+  });
+
+  describe('GET /api/notes/recycle-bin/count', () => {
+    test('should return count of deleted notes', async () => {
+      // Add some notes and delete some
+      const note1 = await repository.create({ title: 'Note 1', content: 'Content 1' });
+      const note2 = await repository.create({ title: 'Note 2', content: 'Content 2' });
+      const note3 = await repository.create({ title: 'Note 3', content: 'Content 3' });
+      
+      await repository.moveToRecycleBin(note1.id);
+      await repository.moveToRecycleBin(note2.id);
+
+      const response = await request(app).get('/api/notes/recycle-bin/count');
+
+      expect(response.status).toBe(200);
+      expect(response.body.count).toBe(2);
+    });
+
+    test('should return zero when no deleted notes exist', async () => {
+      // Add some active notes only
+      await repository.create({ title: 'Active Note', content: 'Content' });
+
+      const response = await request(app).get('/api/notes/recycle-bin/count');
+
+      expect(response.status).toBe(200);
+      expect(response.body.count).toBe(0);
+    });
+
+    test('should handle repository errors', async () => {
+      repository.countDeleted = async () => {
+        throw new Error('Database error');
+      };
+
+      const response = await request(app).get('/api/notes/recycle-bin/count');
+
+      expect(response.status).toBe(500);
+      expect(response.body.error).toBe('Failed to count deleted notes');
+    });
+  });
+
+  describe('DELETE /api/notes/recycle-bin', () => {
+    test('should empty recycle bin and return count', async () => {
+      // Add some notes and delete some
+      const note1 = await repository.create({ title: 'Note 1', content: 'Content 1' });
+      const note2 = await repository.create({ title: 'Note 2', content: 'Content 2' });
+      const note3 = await repository.create({ title: 'Note 3', content: 'Content 3' });
+      
+      await repository.moveToRecycleBin(note1.id);
+      await repository.moveToRecycleBin(note2.id);
+
+      const response = await request(app).delete('/api/notes/recycle-bin');
+
+      expect(response.status).toBe(200);
+      expect(response.body.message).toBe('Recycle bin emptied successfully');
+      expect(response.body.deletedCount).toBe(2);
+
+      // Verify recycle bin is empty
+      const deletedNotes = await repository.findDeleted();
+      expect(deletedNotes.length).toBe(0);
+
+      // Verify active note still exists
+      const activeNotes = await repository.findAll();
+      expect(activeNotes.length).toBe(1);
+      expect(activeNotes[0].id).toBe(note3.id);
+    });
+
+    test('should return zero when recycle bin is already empty', async () => {
+      // Add some active notes only
+      await repository.create({ title: 'Active Note', content: 'Content' });
+
+      const response = await request(app).delete('/api/notes/recycle-bin');
+
+      expect(response.status).toBe(200);
+      expect(response.body.message).toBe('Recycle bin emptied successfully');
+      expect(response.body.deletedCount).toBe(0);
+    });
+
+    test('should handle repository errors', async () => {
+      repository.emptyRecycleBin = async () => {
+        throw new Error('Database error');
+      };
+
+      const response = await request(app).delete('/api/notes/recycle-bin');
+
+      expect(response.status).toBe(500);
+      expect(response.body.error).toBe('Failed to empty recycle bin');
     });
   });
 });

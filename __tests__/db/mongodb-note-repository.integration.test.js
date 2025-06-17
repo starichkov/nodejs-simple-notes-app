@@ -49,7 +49,7 @@ describe('MongoDbNoteRepository Integration Tests', () => {
 
     beforeEach(async () => {
         try {
-            const notes = await repository.findAll('all'); // Get all notes (both active and deleted)
+            const notes = await repository.findAllIncludingDeleted(); // Get all notes (both active and deleted)
             console.log('Cleaning up notes:', notes);
             for (const note of notes) {
                 console.log(`Permanently deleting note ${note.id}...`);
@@ -419,6 +419,92 @@ describe('MongoDbNoteRepository Integration Tests', () => {
             // Test permanentDelete with invalid ID
             const deleteResult = await repository.permanentDelete(invalidId);
             expect(deleteResult).toBe(false);
+        });
+
+        it('should count deleted notes correctly', async () => {
+            // Create some notes
+            const note1 = await repository.create({
+                title: 'Count Test 1',
+                content: 'This note will be deleted'
+            });
+            const note2 = await repository.create({
+                title: 'Count Test 2',
+                content: 'This note will also be deleted'
+            });
+            const note3 = await repository.create({
+                title: 'Count Test 3',
+                content: 'This note will stay active'
+            });
+
+            // Initially, count should be 0
+            let count = await repository.countDeleted();
+            expect(count).toBe(0);
+
+            // Move two notes to recycle bin
+            await repository.moveToRecycleBin(note1.id);
+            await repository.moveToRecycleBin(note2.id);
+
+            // Count should now be 2
+            count = await repository.countDeleted();
+            expect(count).toBe(2);
+
+            // Restore one note
+            await repository.restore(note1.id);
+
+            // Count should now be 1
+            count = await repository.countDeleted();
+            expect(count).toBe(1);
+        });
+
+        it('should empty recycle bin correctly', async () => {
+            // Create some notes
+            const note1 = await repository.create({
+                title: 'Empty Test 1',
+                content: 'This note will be deleted'
+            });
+            const note2 = await repository.create({
+                title: 'Empty Test 2',
+                content: 'This note will also be deleted'
+            });
+            const note3 = await repository.create({
+                title: 'Empty Test 3',
+                content: 'This note will stay active'
+            });
+
+            // Move two notes to recycle bin
+            await repository.moveToRecycleBin(note1.id);
+            await repository.moveToRecycleBin(note2.id);
+
+            // Verify they're in recycle bin
+            let deletedNotes = await repository.findDeleted();
+            expect(deletedNotes.length).toBe(2);
+
+            // Empty recycle bin
+            const deletedCount = await repository.emptyRecycleBin();
+            expect(deletedCount).toBe(2);
+
+            // Verify recycle bin is empty
+            deletedNotes = await repository.findDeleted();
+            expect(deletedNotes.length).toBe(0);
+
+            // Verify active note still exists
+            const activeNotes = await repository.findAll();
+            expect(activeNotes.length).toBe(1);
+            expect(activeNotes[0].id).toBe(note3.id);
+
+            // Verify count is 0
+            const count = await repository.countDeleted();
+            expect(count).toBe(0);
+        });
+
+        it('should handle empty recycle bin when already empty', async () => {
+            // Ensure recycle bin is empty
+            const initialCount = await repository.countDeleted();
+            expect(initialCount).toBe(0);
+
+            // Try to empty already empty recycle bin
+            const deletedCount = await repository.emptyRecycleBin();
+            expect(deletedCount).toBe(0);
         });
     });
 });

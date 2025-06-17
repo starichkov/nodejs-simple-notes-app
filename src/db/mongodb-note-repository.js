@@ -364,4 +364,40 @@ export class MongoDbNoteRepository extends NoteRepository {
             throw error;
         }
     }
+
+    /**
+     * Empty the recycle bin by permanently deleting all deleted notes
+     * @returns {Promise<number>} Promise resolving to the number of notes permanently deleted
+     * @throws {Error} When operation fails due to database issues
+     * @example
+     * const deletedCount = await repository.emptyRecycleBin();
+     * console.log(`Permanently deleted ${deletedCount} notes from recycle bin`);
+     */
+    async emptyRecycleBin() {
+        try {
+            const result = await this.NoteModel.deleteMany({ deletedAt: { $ne: null } });
+            return result.deletedCount || 0;
+        } catch (error) {
+            console.error('Failed to empty recycle bin:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Count the number of deleted notes in recycle bin
+     * @returns {Promise<number>} Promise resolving to the count of deleted notes
+     * @throws {Error} When database query fails or MongoDB is unreachable
+     * @example
+     * const count = await repository.countDeleted();
+     * console.log(`Recycle bin contains ${count} notes`);
+     */
+    async countDeleted() {
+        try {
+            const count = await this.NoteModel.countDocuments({ deletedAt: { $ne: null } });
+            return count;
+        } catch (error) {
+            console.error('Failed to count deleted notes:', error);
+            throw error;
+        }
+    }
 }

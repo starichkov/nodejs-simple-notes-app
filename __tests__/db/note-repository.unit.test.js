@@ -47,6 +47,14 @@ describe('NoteRepository Abstract Interface Tests', () => {
             await expect(repository.permanentDelete('test-id')).rejects.toThrow('Method not implemented');
         });
 
+        test('should throw "Method not implemented" for emptyRecycleBin', async () => {
+            await expect(repository.emptyRecycleBin()).rejects.toThrow('Method not implemented');
+        });
+
+        test('should throw "Method not implemented" for countDeleted', async () => {
+            await expect(repository.countDeleted()).rejects.toThrow('Method not implemented');
+        });
+
 /*
         test('should throw "Method not implemented" for delete', async () => {
             await expect(repository.delete('test-id')).rejects.toThrow('Method not implemented');
@@ -69,11 +77,12 @@ describe('NoteRepository Abstract Interface Tests', () => {
             expect(typeof repository.moveToRecycleBin).toBe('function');
             expect(typeof repository.restore).toBe('function');
             expect(typeof repository.permanentDelete).toBe('function');
+            expect(typeof repository.emptyRecycleBin).toBe('function');
+            expect(typeof repository.countDeleted).toBe('function');
             expect(typeof repository.findDeleted).toBe('function');
         });
 
-        test('should maintain method signatures', () => {
-            // Test that methods exist with correct parameter counts
+        test('should have correct method arities', () => {
             expect(repository.findAll.length).toBe(0);
             expect(repository.findDeleted.length).toBe(0);
             expect(repository.findAllIncludingDeleted.length).toBe(0);
@@ -83,14 +92,16 @@ describe('NoteRepository Abstract Interface Tests', () => {
             expect(repository.moveToRecycleBin.length).toBe(1);
             expect(repository.restore.length).toBe(1);
             expect(repository.permanentDelete.length).toBe(1);
+            expect(repository.emptyRecycleBin.length).toBe(0);
+            expect(repository.countDeleted.length).toBe(0);
             expect(repository.findDeleted.length).toBe(0);
             expect(repository.moveToRecycleBin.length).toBe(1);
         });
     });
 
     describe('Error Handling', () => {
-        test('should ensure all abstract methods return rejected promises', async () => {
-            const methods = [
+        test('should reject with appropriate error messages', async () => {
+            const errorMethods = [
                 () => repository.findAll(),
                 () => repository.findDeleted(),
                 () => repository.findAllIncludingDeleted(),
@@ -99,10 +110,12 @@ describe('NoteRepository Abstract Interface Tests', () => {
                 () => repository.update('test', {}),
                 () => repository.moveToRecycleBin('test'),
                 () => repository.restore('test'),
-                () => repository.permanentDelete('test')
+                () => repository.permanentDelete('test'),
+                () => repository.emptyRecycleBin(),
+                () => repository.countDeleted()
             ];
 
-            for (const method of methods) {
+            for (const method of errorMethods) {
                 await expect(method()).rejects.toThrow('Method not implemented');
             }
         });
@@ -126,6 +139,30 @@ describe('NoteRepository Abstract Interface Tests', () => {
                 expect(promise).toBeInstanceOf(Promise);
                 // The promise should be immediately rejected
                 expect(promise).rejects.toThrow('Method not implemented');
+            });
+        });
+
+        test('should return promises for async methods', () => {
+            const asyncMethods = [
+                () => repository.findAll(),
+                () => repository.findDeleted(),
+                () => repository.findAllIncludingDeleted(),
+                () => repository.findById('test'),
+                () => repository.create({}),
+                () => repository.update('test', {}),
+                () => repository.moveToRecycleBin('test'),
+                () => repository.restore('test'),
+                () => repository.permanentDelete('test'),
+                () => repository.emptyRecycleBin(),
+                () => repository.countDeleted(),
+                () => repository.findDeleted()
+            ];
+
+            asyncMethods.forEach(method => {
+                const result = method();
+                expect(result).toBeInstanceOf(Promise);
+                // Suppress unhandled promise rejection warnings in tests
+                result.catch(() => {});
             });
         });
     });

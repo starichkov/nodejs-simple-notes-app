@@ -53,27 +53,42 @@ export class CouchDbNoteRepository extends NoteRepository {
             }
             this.db = this.client.use(this.dbName);
 
-            // Create a design document for views if it doesn't exist
+            // Create or update design document for views
+            const expectedDesignDoc = {
+                _id: '_design/notes',
+                views: {
+                    all: {
+                        map: "function(doc) { if (doc.type === 'note') { emit(doc._id, null); } }"
+                    },
+                    active: {
+                        map: "function(doc) { if (doc.type === 'note' && doc.deletedAt === null) { emit(doc.updatedAt, null); } }"
+                    },
+                    deleted: {
+                        map: "function(doc) { if (doc.type === 'note' && doc.deletedAt !== null) { emit(doc.deletedAt, null); } }"
+                    }
+                },
+                language: 'javascript'
+            };
+
             try {
-                await this.db.get('_design/notes');
+                const existingDoc = await this.db.get('_design/notes');
+                // Check if the existing design doc has all the required views
+                const hasAllViews = existingDoc.views && 
+                    existingDoc.views.all && 
+                    existingDoc.views.active && 
+                    existingDoc.views.deleted;
+                
+                if (!hasAllViews) {
+                    // Update the existing design doc with all views
+                    expectedDesignDoc._rev = existingDoc._rev;
+                    await this.db.insert(expectedDesignDoc);
+                    console.log('Updated design document with all views');
+                }
             } catch (error) {
                 if (error.statusCode === 404) {
-                    const designDoc = {
-                        _id: '_design/notes',
-                        views: {
-                            all: {
-                                map: "function(doc) { if (doc.type === 'note') { emit(doc._id, null); } }"
-                            },
-                            active: {
-                                map: "function(doc) { if (doc.type === 'note' && doc.deletedAt === null) { emit(doc.updatedAt, null); } }"
-                            },
-                            deleted: {
-                                map: "function(doc) { if (doc.type === 'note' && doc.deletedAt !== null) { emit(doc.deletedAt, null); } }"
-                            }
-                        },
-                        language: 'javascript'
-                    };
-                    await this.db.insert(designDoc);
+                    // Design document doesn't exist, create it
+                    await this.db.insert(expectedDesignDoc);
+                    console.log('Created design document with all views');
                 } else {
                     throw error;
                 }
@@ -431,6 +446,55 @@ export class CouchDbNoteRepository extends NoteRepository {
                 return false;
             }
             console.error(`Failed to permanently delete note with ID ${id}:`, error);
+            throw error;
+        }
+    }
+
+    /**
+     * Empty the recycle bin by permanently deleting all deleted notes
+     * @returns {Promise<number>} Promise resolving to the number of notes permanently deleted
+     * @throws {Error} When operation fails due to database issues
+     * @example
+     * const deletedCount = await repository.emptyRecycleBin();
+     * console.log(`Permanently deleted ${deletedCount} notes from recycle bin`);
+     */
+    async emptyRecycleBin() {
+        try {
+            // Get all deleted notes
+            const deletedNotes = await this.findDeleted();
+            let deleteCount = 0;
+
+            // Permanently delete each one
+            for (const note of deletedNotes) {
+                const deleted = await this.permanentDelete(note.id);
+                if (deleted) {
+                    deleteCount++;
+                }
+            }
+
+            return deleteCount;
+        } catch (error) {
+            console.error('Failed to empty recycle bin:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Count the number of deleted notes in recycle bin
+     * @returns {Promise<number>} Promise resolving to the count of deleted notes
+     * @throws {Error} When database query fails or CouchDB is unreachable
+     * @example
+     * const count = await repository.countDeleted();
+     * console.log(`Recycle bin contains ${count} notes`);
+     */
+    async countDeleted() {
+        try {
+            const result = await this.db.view('notes', 'deleted', {
+                update: true
+            });
+            return result.rows ? result.rows.length : 0;
+        } catch (error) {
+            console.error('Failed to count deleted notes:', error);
             throw error;
         }
     }

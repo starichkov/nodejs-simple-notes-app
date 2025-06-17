@@ -90,6 +90,54 @@ export function createNotesRouter(noteRepository) {
     });
 
     /**
+     * @name GET /notes/recycle-bin/count
+     * @description Get the count of notes in recycle bin
+     * @route GET /recycle-bin/count
+     * @returns {Object} 200 - Count response
+     * @returns {Object} 500 - Error response
+     * @example
+     * // Response format:
+     * {
+     *   "count": 5
+     * }
+     */
+    router.get('/recycle-bin/count', async (req, res) => {
+        try {
+            const count = await noteRepository.countDeleted();
+            res.json({ count });
+        } catch (error) {
+            console.error('Error counting deleted notes:', error);
+            res.status(500).json({ error: 'Failed to count deleted notes' });
+        }
+    });
+
+    /**
+     * @name DELETE /notes/recycle-bin
+     * @description Empty the recycle bin by permanently deleting all deleted notes
+     * @route DELETE /recycle-bin
+     * @returns {Object} 200 - Success response with count of deleted notes
+     * @returns {Object} 500 - Server error response
+     * @example
+     * // Response format (200):
+     * {
+     *   "message": "Recycle bin emptied successfully",
+     *   "deletedCount": 5
+     * }
+     */
+    router.delete('/recycle-bin', async (req, res) => {
+        try {
+            const deletedCount = await noteRepository.emptyRecycleBin();
+            res.json({ 
+                message: 'Recycle bin emptied successfully',
+                deletedCount 
+            });
+        } catch (error) {
+            console.error('Error emptying recycle bin:', error);
+            res.status(500).json({ error: 'Failed to empty recycle bin' });
+        }
+    });
+
+    /**
      * @name GET /notes/:id
      * @description Retrieve a specific note by its ID
      * @route GET /:id
