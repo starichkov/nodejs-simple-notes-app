@@ -1,5 +1,6 @@
 import { jest } from '@jest/globals';
 import { CouchDbNoteRepository } from '../../src/db/couchdb-note-repository.js';
+import { Note } from '../../src/models/note.js';
 
 // We'll manually mock the nano module
 jest.mock('nano', () => {
@@ -192,6 +193,327 @@ describe('CouchDbNoteRepository Error Handling Tests', () => {
         it('should handle connection failure in create()', async () => {
             await expect(repository.create({ title: 'Test', content: 'Test' })).rejects.toThrow('Connection failed');
             expect(repository.db.insert).toHaveBeenCalled();
+        });
+    });
+});
+
+describe('CouchDbNoteRepository Error Scenarios', () => {
+    let repository;
+    const testUrl = 'http://admin:password@localhost:5984';
+    const testDbName = 'test_notes_error_db';
+
+    beforeEach(() => {
+        repository = new CouchDbNoteRepository(testUrl, testDbName);
+    });
+
+    describe('Initialization Error Scenarios', () => {
+        test('should handle database creation errors during init', async () => {
+            // Mock the nano client to throw an error during database creation
+            const mockClient = {
+                db: {
+                    list: jest.fn().mockResolvedValue([]), // DB doesn't exist
+                    create: jest.fn().mockRejectedValue(new Error('Database creation failed'))
+                }
+            };
+            
+            repository.client = mockClient;
+            
+            await expect(repository.init()).rejects.toThrow('Database creation failed');
+        });
+
+        test('should handle design document creation errors during init', async () => {
+            const mockDb = {
+                get: jest.fn().mockRejectedValue({ statusCode: 404 }),
+                insert: jest.fn().mockRejectedValue(new Error('Design document creation failed'))
+            };
+            
+            const mockClient = {
+                db: {
+                    list: jest.fn().mockResolvedValue([testDbName]),
+                },
+                use: jest.fn().mockReturnValue(mockDb)
+            };
+            
+            repository.client = mockClient;
+            
+            await expect(repository.init()).rejects.toThrow('Design document creation failed');
+        });
+
+        test('should handle unexpected errors during design document retrieval', async () => {
+            const mockDb = {
+                get: jest.fn().mockRejectedValue(new Error('Unexpected database error'))
+            };
+            
+            const mockClient = {
+                db: {
+                    list: jest.fn().mockResolvedValue([testDbName]),
+                },
+                use: jest.fn().mockReturnValue(mockDb)
+            };
+            
+            repository.client = mockClient;
+            
+            await expect(repository.init()).rejects.toThrow('Unexpected database error');
+        });
+
+        test('should handle design document update errors', async () => {
+            const existingDoc = {
+                _id: '_design/notes',
+                _rev: '1-abc123',
+                views: {
+                    all: { map: "function(doc) { emit(doc._id, null); }" }
+                    // Missing 'active' and 'deleted' views
+                }
+            };
+            
+            const mockDb = {
+                get: jest.fn().mockResolvedValue(existingDoc),
+                insert: jest.fn().mockRejectedValue(new Error('Update failed'))
+            };
+            
+            const mockClient = {
+                db: {
+                    list: jest.fn().mockResolvedValue([testDbName]),
+                },
+                use: jest.fn().mockReturnValue(mockDb)
+            };
+            
+            repository.client = mockClient;
+            
+            await expect(repository.init()).rejects.toThrow('Update failed');
+        });
+    });
+
+    describe('Query Error Scenarios', () => {
+        test('should handle view query errors in findAll', async () => {
+            const mockDb = {
+                view: jest.fn().mockRejectedValue(new Error('View query failed'))
+            };
+            
+            repository.db = mockDb;
+            
+            await expect(repository.findAll()).rejects.toThrow('View query failed');
+        });
+
+        test('should handle view query errors in findDeleted', async () => {
+            const mockDb = {
+                view: jest.fn().mockRejectedValue(new Error('Deleted view query failed'))
+            };
+            
+            repository.db = mockDb;
+            
+            await expect(repository.findDeleted()).rejects.toThrow('Deleted view query failed');
+        });
+
+        test('should handle view query errors in findAllIncludingDeleted', async () => {
+            const mockDb = {
+                view: jest.fn().mockRejectedValue(new Error('All view query failed'))
+            };
+            
+            repository.db = mockDb;
+            
+            await expect(repository.findAllIncludingDeleted()).rejects.toThrow('All view query failed');
+        });
+
+        test('should handle view query errors in countDeleted', async () => {
+            const mockDb = {
+                view: jest.fn().mockRejectedValue(new Error('Count view query failed'))
+            };
+            
+            repository.db = mockDb;
+            
+            await expect(repository.countDeleted()).rejects.toThrow('Count view query failed');
+        });
+    });
+
+    describe('Document Operation Error Scenarios', () => {
+        test('should handle document retrieval errors in findById', async () => {
+            const mockDb = {
+                get: jest.fn().mockRejectedValue(new Error('Document retrieval failed'))
+            };
+            
+            repository.db = mockDb;
+            
+            await expect(repository.findById('test-id')).rejects.toThrow('Document retrieval failed');
+        });
+
+        test('should handle document creation errors in create', async () => {
+            const mockDb = {
+                insert: jest.fn().mockRejectedValue(new Error('Document creation failed'))
+            };
+            
+            repository.db = mockDb;
+            
+            const note = { title: 'Test Note', content: 'Test content' };
+            await expect(repository.create(note)).rejects.toThrow('Document creation failed');
+        });
+
+        test('should handle document update errors in update', async () => {
+            const existingDoc = {
+                _id: 'test-id',
+                _rev: '1-abc123',
+                title: 'Old Title',
+                content: 'Old content',
+                createdAt: new Date().toISOString(),
+                deletedAt: null
+            };
+            
+            const mockDb = {
+                get: jest.fn().mockResolvedValue(existingDoc),
+                insert: jest.fn().mockRejectedValue(new Error('Document update failed'))
+            };
+            
+            repository.db = mockDb;
+            
+            const updatedNote = { title: 'New Title', content: 'New content' };
+            await expect(repository.update('test-id', updatedNote)).rejects.toThrow('Document update failed');
+        });
+
+        test('should handle conflict errors (409) in update', async () => {
+            const existingDoc = {
+                _id: 'test-id',
+                _rev: '1-abc123',
+                title: 'Old Title',
+                content: 'Old content',
+                createdAt: new Date().toISOString(),
+                deletedAt: null
+            };
+            
+            const conflictError = new Error('Document conflict');
+            conflictError.statusCode = 409;
+            
+            const mockDb = {
+                get: jest.fn().mockResolvedValue(existingDoc),
+                insert: jest.fn().mockRejectedValue(conflictError)
+            };
+            
+            repository.db = mockDb;
+            
+            const updatedNote = { title: 'New Title', content: 'New content' };
+            await expect(repository.update('test-id', updatedNote)).rejects.toThrow('Document was modified concurrently. Please try again.');
+        });
+
+        test('should handle moveToRecycleBin errors during document update', async () => {
+            const existingDoc = {
+                _id: 'test-id',
+                _rev: '1-abc123',
+                title: 'Test Title',
+                content: 'Test content',
+                createdAt: new Date().toISOString(),
+                deletedAt: null
+            };
+            
+            const mockDb = {
+                get: jest.fn().mockResolvedValue(existingDoc),
+                insert: jest.fn().mockRejectedValue(new Error('Move to recycle bin failed'))
+            };
+            
+            repository.db = mockDb;
+            
+            await expect(repository.moveToRecycleBin('test-id')).rejects.toThrow('Move to recycle bin failed');
+        });
+
+        test('should handle restore errors during document update', async () => {
+            const existingDoc = {
+                _id: 'test-id',
+                _rev: '1-abc123',
+                title: 'Test Title',
+                content: 'Test content',
+                createdAt: new Date().toISOString(),
+                deletedAt: new Date().toISOString()
+            };
+            
+            const mockDb = {
+                get: jest.fn().mockResolvedValue(existingDoc),
+                insert: jest.fn().mockRejectedValue(new Error('Restore failed'))
+            };
+            
+            repository.db = mockDb;
+            
+            await expect(repository.restore('test-id')).rejects.toThrow('Restore failed');
+        });
+
+        test('should handle permanent delete errors', async () => {
+            const existingDoc = {
+                _id: 'test-id',
+                _rev: '1-abc123',
+                title: 'Test Title',
+                content: 'Test content'
+            };
+            
+            const mockDb = {
+                get: jest.fn().mockResolvedValue(existingDoc),
+                destroy: jest.fn().mockRejectedValue(new Error('Permanent deletion failed'))
+            };
+            
+            repository.db = mockDb;
+            
+            await expect(repository.permanentDelete('test-id')).rejects.toThrow('Permanent deletion failed');
+        });
+
+        test('should handle emptyRecycleBin errors', async () => {
+            // Mock findDeleted to return some notes
+            const deletedNotes = [
+                new Note('note1', 'Title 1', 'Content 1', new Date(), new Date(), new Date()),
+                new Note('note2', 'Title 2', 'Content 2', new Date(), new Date(), new Date())
+            ];
+            
+            repository.findDeleted = jest.fn().mockResolvedValue(deletedNotes);
+            repository.permanentDelete = jest.fn()
+                .mockResolvedValueOnce(true)
+                .mockRejectedValueOnce(new Error('Permanent delete failed'));
+            
+            await expect(repository.emptyRecycleBin()).rejects.toThrow('Permanent delete failed');
+        });
+    });
+
+    describe('Result Processing Error Scenarios', () => {
+        test('should handle empty results in findAll', async () => {
+            const mockDb = {
+                view: jest.fn().mockResolvedValue({ rows: null })
+            };
+            
+            repository.db = mockDb;
+            
+            const result = await repository.findAll();
+            expect(result).toEqual([]);
+        });
+
+        test('should handle rows without documents in findAll', async () => {
+            const mockDb = {
+                view: jest.fn().mockResolvedValue({
+                    rows: [
+                        { doc: null },
+                        { doc: undefined },
+                        {
+                            doc: {
+                                _id: 'valid-note',
+                                title: 'Valid Note',
+                                content: 'Valid content',
+                                deletedAt: null,
+                                createdAt: new Date().toISOString(),
+                                updatedAt: new Date().toISOString()
+                            }
+                        }
+                    ]
+                })
+            };
+            
+            repository.db = mockDb;
+            
+            const result = await repository.findAll();
+            expect(result).toHaveLength(1);
+            expect(result[0].title).toBe('Valid Note');
+        });
+
+        test('should handle _mapResult with null results', () => {
+            const result = repository._mapResult(null);
+            expect(result).toEqual([]);
+        });
+
+        test('should handle _mapResult with no rows', () => {
+            const result = repository._mapResult({ rows: null });
+            expect(result).toEqual([]);
         });
     });
 });

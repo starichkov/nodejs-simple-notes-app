@@ -76,7 +76,9 @@ export class NotesServer {
      * const repo = server.createNoteRepository(); // Returns CouchDbNoteRepository
      */
     createNoteRepository() {
-        if (DB_VENDOR === 'mongodb') {
+        // Use current environment variable value, not cached constant
+        const dbVendor = process.env.DB_VENDOR || 'couchdb';
+        if (dbVendor === 'mongodb') {
             console.log('Using MongoDB as the database vendor');
             return new MongoDbNoteRepository(MONGODB_URL, MONGODB_DB_NAME);
         } else {

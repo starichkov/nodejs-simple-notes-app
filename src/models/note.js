@@ -39,14 +39,14 @@ export class Note {
      * });
      */
     static fromObject(obj) {
-        return new Note(
-            obj.id,
-            obj.title,
-            obj.content,
-            obj.createdAt ? new Date(obj.createdAt) : new Date(),
-            obj.updatedAt ? new Date(obj.updatedAt) : new Date(),
-            obj.deletedAt ? new Date(obj.deletedAt) : null
-        );
+        const note = new Note();
+        note.id = obj.id;
+        note.title = obj.title;
+        note.content = obj.content;
+        note.createdAt = obj.createdAt ? new Date(obj.createdAt) : new Date();
+        note.updatedAt = obj.updatedAt ? new Date(obj.updatedAt) : new Date();
+        note.deletedAt = obj.deletedAt ? new Date(obj.deletedAt) : null;
+        return note;
     }
 
     /**
@@ -73,7 +73,7 @@ export class Note {
      * @returns {boolean} True if the note is deleted, false otherwise
      */
     isDeleted() {
-        return this.deletedAt !== null;
+        return this.deletedAt !== null && this.deletedAt !== undefined;
     }
 
     /**
@@ -81,6 +81,6 @@ export class Note {
      * @returns {boolean} True if the note is active, false otherwise
      */
     isActive() {
-        return this.deletedAt === null;
+        return this.deletedAt === null || this.deletedAt === undefined;
     }
 }
