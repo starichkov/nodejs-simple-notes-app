@@ -21,7 +21,7 @@ services:
     networks:
       - notes-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://${COUCHDB_USERNAME}:${COUCHDB_PASSWORD}@localhost:5984/_up"]
+      test: [ "CMD", "curl", "-f", "http://${COUCHDB_USERNAME}:${COUCHDB_PASSWORD}@localhost:5984/_up" ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -48,7 +48,7 @@ services:
     networks:
       - notes-network
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -60,4 +60,4 @@ volumes:
 
 networks:
   notes-network:
-    driver: bridge 
+    driver: bridge
