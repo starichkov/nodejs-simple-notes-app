@@ -10,6 +10,7 @@ const noteIdInput = document.getElementById('note-id');
 const noteTitleInput = document.getElementById('note-title');
 const noteContentInput = document.getElementById('note-content');
 const cancelBtn = document.getElementById('cancel-btn');
+const headerActions = document.querySelector('.header-actions');
 
 // Tab elements
 const notesTab = document.getElementById('notes-tab');
@@ -61,17 +62,47 @@ async function updateRecycleBinCount() {
         }
         const data = await response.json();
         const count = data.count;
-        
+
         // Update tab text with count
         if (count > 0) {
             recycleBinTab.textContent = `Recycle Bin (${count})`;
         } else {
             recycleBinTab.textContent = 'Recycle Bin';
         }
+
+        // If we're in recycle bin view, update the Empty Recycle Bin button
+        if (currentView === 'recycleBin') {
+            addEmptyRecycleBinButton(count);
+        }
     } catch (error) {
         console.error('Error fetching recycle bin count:', error);
         // Keep default text on error
         recycleBinTab.textContent = 'Recycle Bin';
+    }
+}
+
+/**
+ * Add the Empty Recycle Bin button to the header actions
+ * @param {number} count - The number of notes in the recycle bin
+ * @returns {void}
+ */
+function addEmptyRecycleBinButton(count) {
+    // Remove existing button if it exists
+    const existingBtn = document.getElementById('empty-recycle-bin-btn');
+    if (existingBtn) {
+        existingBtn.remove();
+    }
+
+    // Only add the button if there are notes to delete
+    if (count > 0) {
+        const emptyBinButton = document.createElement('button');
+        emptyBinButton.id = 'empty-recycle-bin-btn';
+        emptyBinButton.className = 'btn btn-danger';
+        emptyBinButton.textContent = `Empty Recycle Bin (${count})`;
+        emptyBinButton.addEventListener('click', emptyRecycleBin);
+
+        // Add to header actions
+        headerActions.appendChild(emptyBinButton);
     }
 }
 
@@ -90,6 +121,11 @@ function switchToView(view) {
         notesView.classList.add('active');
         recycleBinView.classList.remove('active');
         createNoteBtn.style.display = 'block';
+        // Remove Empty Recycle Bin button if it exists
+        const emptyBinBtn = document.getElementById('empty-recycle-bin-btn');
+        if (emptyBinBtn) {
+            emptyBinBtn.remove();
+        }
         fetchNotes();
     } else {
         recycleBinTab.classList.add('active');
@@ -98,6 +134,13 @@ function switchToView(view) {
         notesView.classList.remove('active');
         createNoteBtn.style.display = 'none';
         fetchDeletedNotes();
+        // Get the count of deleted notes to add the Empty Recycle Bin button
+        fetch(`${API_URL}/recycle-bin/count`)
+            .then(response => response.json())
+            .then(data => {
+                addEmptyRecycleBinButton(data.count);
+            })
+            .catch(error => console.error('Error fetching recycle bin count:', error));
     }
     // Update count whenever switching views
     updateRecycleBinCount();
@@ -183,13 +226,6 @@ function displayDeletedNotes(notes) {
         return;
     }
 
-    // Add Empty Recycle Bin button at the top
-    const emptyBinButton = `
-        <div class="recycle-bin-actions">
-            <button id="empty-recycle-bin-btn" class="btn btn-danger">Empty Recycle Bin (${notes.length})</button>
-        </div>
-    `;
-
     const notesHTML = notes.map(note => {
         const deletedDate = new Date(note.deletedAt).toLocaleDateString();
         return `
@@ -205,16 +241,13 @@ function displayDeletedNotes(notes) {
         `;
     }).join('');
 
-    recycleBinContainer.innerHTML = emptyBinButton + notesHTML;
+    recycleBinContainer.innerHTML = notesHTML;
 
     // Add event listeners using event delegation
     recycleBinContainer.addEventListener('click', handleRecycleBinActions);
-    
-    // Add event listener for empty recycle bin button
-    const emptyBinBtn = document.getElementById('empty-recycle-bin-btn');
-    if (emptyBinBtn) {
-        emptyBinBtn.addEventListener('click', emptyRecycleBin);
-    }
+
+    // Update the Empty Recycle Bin button in the header
+    addEmptyRecycleBinButton(notes.length);
 }
 
 /**
@@ -417,7 +450,7 @@ async function emptyRecycleBin() {
 
         const data = await response.json();
         alert(`Successfully deleted ${data.deletedCount} notes from recycle bin.`);
-        
+
         fetchDeletedNotes();
         updateRecycleBinCount(); // Update count after emptying
     } catch (error) {
