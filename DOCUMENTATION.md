@@ -112,9 +112,9 @@ For API endpoints, we use a special pattern:
 ```javascript
 /**
  * @name GET /notes
- * @description Retrieve all notes from the database
+ * @description Retrieve all active notes from the database
  * @route GET /
- * @returns {Object[]} 200 - Array of note objects
+ * @returns {Object[]} 200 - Array of active note objects
  * @returns {Object} 500 - Error response
  * @example
  * // Response format:
@@ -122,11 +122,71 @@ For API endpoints, we use a special pattern:
  *   {
  *     "id": "note_123",
  *     "title": "Sample Note",
- *     "content": "This is a sample note content"
+ *     "content": "This is a sample note content",
+ *     "status": "active",
+ *     "deletedAt": null,
+ *     "createdAt": "2023-01-01T00:00:00.000Z",
+ *     "updatedAt": "2023-01-02T00:00:00.000Z"
  *   }
  * ]
  */
 ```
+
+### Recycle Bin Functionality API Documentation
+The application now includes comprehensive recycle bin functionality with the following endpoints:
+
+```javascript
+/**
+ * @name GET /notes/recycle-bin
+ * @description Retrieve all deleted notes from the recycle bin
+ * @route GET /recycle-bin
+ * @returns {Object[]} 200 - Array of deleted note objects
+ */
+
+/**
+ * @name GET /notes/recycle-bin/count
+ * @description Get the count of notes in recycle bin
+ * @route GET /recycle-bin/count
+ * @returns {Object} 200 - Count response with format { "count": 5 }
+ */
+
+/**
+ * @name DELETE /notes/recycle-bin
+ * @description Empty the recycle bin by permanently deleting all deleted notes
+ * @route DELETE /recycle-bin
+ * @returns {Object} 200 - Success response with count of deleted notes
+ */
+
+/**
+ * @name POST /notes/recycle-bin/restore-all
+ * @description Restore all notes from recycle bin
+ * @route POST /recycle-bin/restore-all
+ * @returns {Object} 200 - Success response with count of restored notes
+ */
+
+/**
+ * @name POST /notes/:id/restore
+ * @description Restore a note from recycle bin
+ * @route POST /:id/restore
+ * @returns {void} 204 - No content (successful restoration)
+ */
+
+/**
+ * @name DELETE /notes/:id
+ * @description Move a note to recycle bin (soft delete)
+ * @route DELETE /:id
+ * @returns {void} 204 - No content (successful move to recycle bin)
+ */
+
+/**
+ * @name DELETE /notes/:id/permanent
+ * @description Permanently delete a note
+ * @route DELETE /:id/permanent
+ * @returns {void} 204 - No content (successful permanent deletion)
+ */
+```
+
+Note: The `/notes/trash` endpoint is still available for backward compatibility but is deprecated. Use `/notes/recycle-bin` instead.
 
 This creates comprehensive API documentation in the Global section.
 
@@ -258,14 +318,14 @@ jobs:
       - Checkout code
       - Setup Node.js 22 (LTS)
       - Install dependencies
-      
+
       # 2. Build
       - Generate documentation
-      
+
       # 3. Quality checks
       - Check for broken links
       - Validate JSDoc coverage
-      
+
       # 4. Deploy (main branch only)
       - Deploy to GitHub Pages
 ```

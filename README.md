@@ -17,8 +17,10 @@ A RESTful API for managing text notes, built with Node.js, Express, and NoSQL da
 ## Features
 
 - Create, read, update, and delete text notes
+- **Recycle bin functionality** - Move notes to recycle bin instead of immediate deletion
+- **Restore notes** from recycle bin or permanently delete them
 - RESTful API design
-- Simple and intuitive web UI
+- Simple and intuitive web UI with tabs for Notes and Recycle Bin
 - Database-agnostic architecture
 - Multiple database implementations (CouchDB, MongoDB)
 - Environment-based configuration
@@ -151,6 +153,22 @@ Each Docker Compose setup includes:
 - **Data persistence**: Named volumes for database data
 - **Network isolation**: Services communicate through a private network
 
+### Local Testing
+
+Run the following command to execute tests and get a coverage report:
+
+```shell
+npm run test:coverage
+```
+
+Then open report file from `coverage/lcov-report/index.html`.
+
+Or, alternatively, use an existing custom script:
+
+```shell
+npm run test:coverage:open
+```
+
 ### Automated Testing
 
 #### Local Testing Script
@@ -232,10 +250,17 @@ Once the server is running, you can:
 
 ## API Endpoints
 
-### Get all notes
+### Get all active notes
 ```
 GET /api/notes
 ```
+
+### Get all deleted notes
+```
+GET /api/notes/recycle-bin
+```
+
+Note: The `/api/notes/trash` endpoint is still available for backward compatibility but is deprecated.
 
 ### Get a note by ID
 ```
@@ -264,9 +289,34 @@ Content-Type: application/json
 }
 ```
 
-### Delete a note
+### Move a note to recycle bin (soft delete)
 ```
 DELETE /api/notes/:id
+```
+
+### Restore a note from recycle bin
+```
+POST /api/notes/:id/restore
+```
+
+### Permanently delete a note
+```
+DELETE /api/notes/:id/permanent
+```
+
+### Get count of notes in recycle bin
+```
+GET /api/notes/recycle-bin/count
+```
+
+### Empty recycle bin (permanently delete all notes in recycle bin)
+```
+DELETE /api/notes/recycle-bin
+```
+
+### Restore all notes from recycle bin
+```
+POST /api/notes/recycle-bin/restore-all
 ```
 
 ## Health Check
@@ -285,10 +335,15 @@ http://localhost:3000/
 
 ### UI Features
 
-- View all notes in a responsive grid layout
+- **Tab Navigation**: Switch between "Notes" and "Recycle Bin" views
+- **Notes View**: View all active notes in a responsive grid layout
+- **Recycle Bin View**: View deleted notes with restore/permanently delete options
 - Create new notes with a modal form
 - Edit existing notes
-- Delete notes with confirmation
+- **Recycle Bin Operations**:
+  - Move notes to recycle bin (soft delete) with confirmation
+  - Restore notes from recycle bin back to active status
+  - Permanently delete notes from recycle bin (with strong confirmation)
 - Responsive design that works on desktop and mobile devices
 
 The UI is built with vanilla JavaScript, HTML, and CSS, with no external dependencies. It communicates with the API endpoints described above.

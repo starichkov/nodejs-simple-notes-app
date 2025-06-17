@@ -1,5 +1,6 @@
 // DOM Elements
 const notesContainer = document.getElementById('notes-container');
+const recycleBinContainer = document.getElementById('recycle-bin-container');
 const createNoteBtn = document.getElementById('create-note-btn');
 const noteModal = document.getElementById('note-modal');
 const modalTitle = document.getElementById('modal-title');
@@ -9,12 +10,26 @@ const noteIdInput = document.getElementById('note-id');
 const noteTitleInput = document.getElementById('note-title');
 const noteContentInput = document.getElementById('note-content');
 const cancelBtn = document.getElementById('cancel-btn');
+const headerActions = document.querySelector('.header-actions');
+
+// Tab elements
+const notesTab = document.getElementById('notes-tab');
+const recycleBinTab = document.getElementById('recycle-bin-tab');
+const notesView = document.getElementById('notes-view');
+const recycleBinView = document.getElementById('recycle-bin-view');
+
+// Current view state
+let currentView = 'notes';
 
 // API Base URL
 const API_URL = '/api/notes';
 
 // Event Listeners
-document.addEventListener('DOMContentLoaded', fetchNotes);
+document.addEventListener('DOMContentLoaded', () => {
+    fetchNotes();
+    initializeTabs();
+    updateRecycleBinCount(); // Initialize count on page load
+});
 createNoteBtn.addEventListener('click', openCreateNoteModal);
 closeBtn.addEventListener('click', closeModal);
 cancelBtn.addEventListener('click', closeModal);
@@ -26,7 +41,131 @@ window.addEventListener('click', (e) => {
 });
 
 /**
- * Fetch all notes from the API and display them in the UI
+ * Initialize tab navigation
+ * @returns {void}
+ */
+function initializeTabs() {
+    notesTab.addEventListener('click', () => switchToView('notes'));
+    recycleBinTab.addEventListener('click', () => switchToView('recycleBin'));
+}
+
+/**
+ * Fetch and update the recycle bin count in the tab
+ * @async
+ * @returns {Promise<void>}
+ */
+async function updateRecycleBinCount() {
+    try {
+        const response = await fetch(`${API_URL}/recycle-bin/count`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch recycle bin count');
+        }
+        const data = await response.json();
+        const count = data.count;
+
+        // Update tab text with count
+        if (count > 0) {
+            recycleBinTab.textContent = `Recycle Bin (${count})`;
+        } else {
+            recycleBinTab.textContent = 'Recycle Bin';
+        }
+
+        // If we're in recycle bin view, update the recycle bin buttons
+        if (currentView === 'recycleBin') {
+            addRecycleBinButtons(count);
+        }
+    } catch (error) {
+        console.error('Error fetching recycle bin count:', error);
+        // Keep default text on error
+        recycleBinTab.textContent = 'Recycle Bin';
+    }
+}
+
+/**
+ * Add the Restore All and Empty Recycle Bin buttons to the header actions
+ * @param {number} count - The number of notes in the recycle bin
+ * @returns {void}
+ */
+function addRecycleBinButtons(count) {
+    // Remove existing buttons if they exist
+    const existingEmptyBtn = document.getElementById('empty-recycle-bin-btn');
+    if (existingEmptyBtn) {
+        existingEmptyBtn.remove();
+    }
+
+    const existingRestoreAllBtn = document.getElementById('restore-all-btn');
+    if (existingRestoreAllBtn) {
+        existingRestoreAllBtn.remove();
+    }
+
+    // Only add the buttons if there are notes in the recycle bin
+    if (count > 0) {
+        // Create Restore All button
+        const restoreAllButton = document.createElement('button');
+        restoreAllButton.id = 'restore-all-btn';
+        restoreAllButton.className = 'btn btn-primary';
+        restoreAllButton.textContent = `Restore All (${count})`;
+        restoreAllButton.addEventListener('click', restoreAllNotes);
+
+        // Create Empty Recycle Bin button
+        const emptyBinButton = document.createElement('button');
+        emptyBinButton.id = 'empty-recycle-bin-btn';
+        emptyBinButton.className = 'btn btn-danger';
+        emptyBinButton.textContent = `Empty Recycle Bin (${count})`;
+        emptyBinButton.addEventListener('click', emptyRecycleBin);
+
+        // Add to header actions in the correct order
+        headerActions.appendChild(restoreAllButton);
+        headerActions.appendChild(emptyBinButton);
+    }
+}
+
+/**
+ * Switch between notes and recycle bin views
+ * @param {string} view - The view to switch to ('notes' or 'recycleBin')
+ * @returns {void}
+ */
+function switchToView(view) {
+    currentView = view;
+
+    // Update tab active states
+    if (view === 'notes') {
+        notesTab.classList.add('active');
+        recycleBinTab.classList.remove('active');
+        notesView.classList.add('active');
+        recycleBinView.classList.remove('active');
+        createNoteBtn.style.display = 'block';
+        // Remove recycle bin buttons if they exist
+        const emptyBinBtn = document.getElementById('empty-recycle-bin-btn');
+        if (emptyBinBtn) {
+            emptyBinBtn.remove();
+        }
+        const restoreAllBtn = document.getElementById('restore-all-btn');
+        if (restoreAllBtn) {
+            restoreAllBtn.remove();
+        }
+        fetchNotes();
+    } else {
+        recycleBinTab.classList.add('active');
+        notesTab.classList.remove('active');
+        recycleBinView.classList.add('active');
+        notesView.classList.remove('active');
+        createNoteBtn.style.display = 'none';
+        fetchDeletedNotes();
+        // Get the count of deleted notes to add the recycle bin buttons
+        fetch(`${API_URL}/recycle-bin/count`)
+            .then(response => response.json())
+            .then(data => {
+                addRecycleBinButtons(data.count);
+            })
+            .catch(error => console.error('Error fetching recycle bin count:', error));
+    }
+    // Update count whenever switching views
+    updateRecycleBinCount();
+}
+
+/**
+ * Fetch all active notes from the API and display them in the UI
  * @async
  * @returns {Promise<void>}
  * @throws {Error} When API request fails or response is not ok
@@ -49,17 +188,29 @@ async function fetchNotes() {
 }
 
 /**
- * Display notes in the UI container, handling empty state
+ * Fetch all deleted notes from the API and display them in the UI
+ * @async
+ * @returns {Promise<void>}
+ * @throws {Error} When API request fails or response is not ok
+ */
+async function fetchDeletedNotes() {
+    try {
+        const response = await fetch(`${API_URL}/recycle-bin`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch deleted notes');
+        }
+        const notes = await response.json();
+        displayDeletedNotes(notes);
+    } catch (error) {
+        console.error('Error fetching deleted notes:', error);
+        recycleBinContainer.innerHTML = `<div class="error">Error loading deleted notes: ${error.message}</div>`;
+    }
+}
+
+/**
+ * Display active notes in the UI container
  * @param {Object[]} notes - Array of note objects to display
- * @param {string} notes[].id - Unique identifier of the note
- * @param {string} notes[].title - Title of the note
- * @param {string} notes[].content - Content of the note
  * @returns {void}
- * @example
- * const notes = [
- *   { id: '1', title: 'Sample Note', content: 'Sample content' }
- * ];
- * displayNotes(notes);
  */
 function displayNotes(notes) {
     if (notes.length === 0) {
@@ -73,7 +224,7 @@ function displayNotes(notes) {
             <p>${escapeHtml(note.content)}</p>
             <div class="note-actions">
                 <button class="btn btn-secondary edit-btn" data-id="${note.id}">Edit</button>
-                <button class="btn btn-danger delete-btn" data-id="${note.id}">Delete</button>
+                <button class="btn btn-warning delete-btn" data-id="${note.id}">Move to Recycle Bin</button>
             </div>
         </div>
     `).join('');
@@ -83,11 +234,43 @@ function displayNotes(notes) {
 }
 
 /**
+ * Display deleted notes in the UI container
+ * @param {Object[]} notes - Array of deleted note objects to display
+ * @returns {void}
+ */
+function displayDeletedNotes(notes) {
+    if (notes.length === 0) {
+        recycleBinContainer.innerHTML = '<div class="no-notes">Recycle Bin is empty.</div>';
+        return;
+    }
+
+    const notesHTML = notes.map(note => {
+        const deletedDate = new Date(note.deletedAt).toLocaleDateString();
+        return `
+            <div class="note-card deleted" data-id="${note.id}">
+                <div class="note-meta">Moved to Recycle Bin on ${deletedDate}</div>
+                <h3>${escapeHtml(note.title)}</h3>
+                <p>${escapeHtml(note.content)}</p>
+                <div class="note-actions">
+                    <button class="btn btn-primary restore-btn" data-id="${note.id}">Restore</button>
+                    <button class="btn btn-danger permanent-delete-btn" data-id="${note.id}">Delete Permanently</button>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    recycleBinContainer.innerHTML = notesHTML;
+
+    // Add event listeners using event delegation
+    recycleBinContainer.addEventListener('click', handleRecycleBinActions);
+
+    // Update the recycle bin buttons in the header
+    addRecycleBinButtons(notes.length);
+}
+
+/**
  * Open the modal dialog for creating a new note
  * @returns {void}
- * @example
- * // Called when user clicks "Create New Note" button
- * openCreateNoteModal();
  */
 function openCreateNoteModal() {
     modalTitle.textContent = 'Create New Note';
@@ -103,9 +286,6 @@ function openCreateNoteModal() {
  * @param {string} id - The unique identifier of the note to edit
  * @returns {Promise<void>}
  * @throws {Error} When note fetch fails or note is not found
- * @example
- * // Called when user clicks "Edit" button on a note
- * await openEditNoteModal('note_123');
  */
 async function openEditNoteModal(id) {
     try {
@@ -129,9 +309,6 @@ async function openEditNoteModal(id) {
 /**
  * Close the modal dialog and hide it from view
  * @returns {void}
- * @example
- * // Called when user clicks close button or cancel
- * closeModal();
  */
 function closeModal() {
     noteModal.classList.remove('modal-visible');
@@ -143,9 +320,6 @@ function closeModal() {
  * @param {Event} e - The form submit event
  * @returns {Promise<void>}
  * @throws {Error} When note creation/update fails
- * @example
- * // Automatically called when form is submitted
- * noteForm.addEventListener('submit', handleFormSubmit);
  */
 async function handleFormSubmit(e) {
     e.preventDefault();
@@ -180,7 +354,9 @@ async function handleFormSubmit(e) {
         }
 
         closeModal();
-        fetchNotes();
+        if (currentView === 'notes') {
+            fetchNotes();
+        }
     } catch (error) {
         console.error(`Error ${isEdit ? 'updating' : 'creating'} note:`, error);
         alert(`Error: ${error.message}`);
@@ -188,17 +364,14 @@ async function handleFormSubmit(e) {
 }
 
 /**
- * Delete a note after user confirmation
+ * Move a note to recycle bin after user confirmation
  * @async
- * @param {string} id - The unique identifier of the note to delete
+ * @param {string} id - The unique identifier of the note to move to recycle bin
  * @returns {Promise<void>}
- * @throws {Error} When note deletion fails
- * @example
- * // Called when user clicks "Delete" button on a note
- * await deleteNote('note_123');
+ * @throws {Error} When move to recycle bin fails
  */
-async function deleteNote(id) {
-    if (!confirm('Are you sure you want to delete this note?')) {
+async function moveToRecycleBin(id) {
+    if (!confirm('Are you sure you want to move this note to recycle bin?')) {
         return;
     }
 
@@ -208,12 +381,129 @@ async function deleteNote(id) {
         });
 
         if (!response.ok) {
-            throw new Error('Failed to delete note');
+            throw new Error('Failed to move note to recycle bin');
         }
 
         fetchNotes();
+        updateRecycleBinCount(); // Update count after moving to recycle bin
     } catch (error) {
-        console.error('Error deleting note:', error);
+        console.error('Error moving note to recycle bin:', error);
+        alert(`Error: ${error.message}`);
+    }
+}
+
+/**
+ * Restore a note from recycle bin
+ * @async
+ * @param {string} id - The unique identifier of the note to restore
+ * @returns {Promise<void>}
+ * @throws {Error} When restore fails
+ */
+async function restoreNote(id) {
+    try {
+        const response = await fetch(`${API_URL}/${id}/restore`, {
+            method: 'POST'
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to restore note');
+        }
+
+        fetchDeletedNotes();
+        updateRecycleBinCount(); // Update count after restore
+    } catch (error) {
+        console.error('Error restoring note:', error);
+        alert(`Error: ${error.message}`);
+    }
+}
+
+/**
+ * Permanently delete a note after user confirmation
+ * @async
+ * @param {string} id - The unique identifier of the note to permanently delete
+ * @returns {Promise<void>}
+ * @throws {Error} When permanent deletion fails
+ */
+async function permanentDeleteNote(id) {
+    if (!confirm('Are you sure you want to permanently delete this note? This action cannot be undone.')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_URL}/${id}/permanent`, {
+            method: 'DELETE'
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to permanently delete note');
+        }
+
+        fetchDeletedNotes();
+        updateRecycleBinCount(); // Update count after permanent deletion
+    } catch (error) {
+        console.error('Error permanently deleting note:', error);
+        alert(`Error: ${error.message}`);
+    }
+}
+
+/**
+ * Empty the recycle bin by permanently deleting all deleted notes
+ * @async
+ * @returns {Promise<void>}
+ * @throws {Error} When empty recycle bin fails
+ */
+async function emptyRecycleBin() {
+    if (!confirm('Are you sure you want to permanently delete ALL notes in the recycle bin? This action cannot be undone.')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_URL}/recycle-bin`, {
+            method: 'DELETE'
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to empty recycle bin');
+        }
+
+        const data = await response.json();
+        alert(`Successfully deleted ${data.deletedCount} notes from recycle bin.`);
+
+        fetchDeletedNotes();
+        updateRecycleBinCount(); // Update count after emptying
+    } catch (error) {
+        console.error('Error emptying recycle bin:', error);
+        alert(`Error: ${error.message}`);
+    }
+}
+
+/**
+ * Restore all notes from recycle bin
+ * @async
+ * @returns {Promise<void>}
+ * @throws {Error} When restore all fails
+ */
+async function restoreAllNotes() {
+    if (!confirm('Are you sure you want to restore ALL notes from the recycle bin?')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_URL}/recycle-bin/restore-all`, {
+            method: 'POST'
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to restore all notes');
+        }
+
+        const data = await response.json();
+        alert(`Successfully restored ${data.restoredCount} notes from recycle bin.`);
+
+        fetchDeletedNotes();
+        updateRecycleBinCount(); // Update count after restoring
+    } catch (error) {
+        console.error('Error restoring all notes:', error);
         alert(`Error: ${error.message}`);
     }
 }
@@ -222,21 +512,36 @@ async function deleteNote(id) {
  * Handle clicks on note action buttons using event delegation
  * @param {Event} e - The click event on the notes container
  * @returns {void}
- * @example
- * // Automatically handles edit and delete button clicks
- * notesContainer.addEventListener('click', handleNoteActions);
  */
 function handleNoteActions(e) {
     const target = e.target;
 
-    // Check if the clicked element is a button with a data-id attribute
     if (target.tagName === 'BUTTON' && target.dataset.id) {
         const noteId = target.dataset.id;
 
         if (target.classList.contains('edit-btn')) {
             openEditNoteModal(noteId);
         } else if (target.classList.contains('delete-btn')) {
-            deleteNote(noteId);
+            moveToRecycleBin(noteId);
+        }
+    }
+}
+
+/**
+ * Handle clicks on recycle bin action buttons using event delegation
+ * @param {Event} e - The click event on the recycle bin container
+ * @returns {void}
+ */
+function handleRecycleBinActions(e) {
+    const target = e.target;
+
+    if (target.tagName === 'BUTTON' && target.dataset.id) {
+        const noteId = target.dataset.id;
+
+        if (target.classList.contains('restore-btn')) {
+            restoreNote(noteId);
+        } else if (target.classList.contains('permanent-delete-btn')) {
+            permanentDeleteNote(noteId);
         }
     }
 }
@@ -245,9 +550,6 @@ function handleNoteActions(e) {
  * Escape HTML characters to prevent XSS attacks
  * @param {string} unsafe - The unsafe string that may contain HTML characters
  * @returns {string} The escaped string safe for HTML insertion
- * @example
- * const safe = escapeHtml('<script>alert("xss")</script>');
- * // Returns: "&lt;script&gt;alert("xss")&lt;/script&gt;"
  */
 function escapeHtml(unsafe) {
     return unsafe

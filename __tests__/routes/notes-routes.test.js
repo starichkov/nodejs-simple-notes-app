@@ -11,6 +11,14 @@ class MockNoteRepository {
   }
 
   async findAll() {
+    return this.notes.filter(note => note.deletedAt === null);
+  }
+
+  async findDeleted() {
+    return this.notes.filter(note => note.deletedAt !== null);
+  }
+
+  async findAllIncludingDeleted() {
     return [...this.notes];
   }
 
@@ -26,7 +34,8 @@ class MockNoteRepository {
       noteData.title,
       noteData.content,
       new Date(),
-      new Date()
+      new Date(),
+      null
     );
     this.notes.push(note);
     return note;
@@ -35,21 +44,72 @@ class MockNoteRepository {
   async update(id, noteData) {
     const index = this.notes.findIndex(n => n.id === id);
     if (index === -1) return null;
-    
+
     const note = this.notes[index];
     note.title = noteData.title;
     note.content = noteData.content;
     note.updatedAt = new Date();
-    
+
     return note;
   }
 
-  async delete(id) {
+  async moveToRecycleBin(id) {
     const index = this.notes.findIndex(n => n.id === id);
     if (index === -1) return false;
-    
+
+    const note = this.notes[index];
+    note.status = 'trashed';
+    note.deletedAt = new Date();
+    note.updatedAt = new Date();
+
+    return true;
+  }
+
+  async restore(id) {
+    const index = this.notes.findIndex(n => n.id === id);
+    if (index === -1) return false;
+
+    const note = this.notes[index];
+    note.deletedAt = null;
+    note.updatedAt = new Date();
+
+    return true;
+  }
+
+  async permanentDelete(id) {
+    const index = this.notes.findIndex(n => n.id === id);
+    if (index === -1) return false;
+
     this.notes.splice(index, 1);
     return true;
+  }
+
+  async emptyRecycleBin() {
+    const deletedNotes = this.notes.filter(note => note.deletedAt !== null);
+    const deletedCount = deletedNotes.length;
+    this.notes = this.notes.filter(note => note.deletedAt === null);
+    return deletedCount;
+  }
+
+  async restoreAll() {
+    const deletedNotes = this.notes.filter(note => note.deletedAt !== null);
+    const restoredCount = deletedNotes.length;
+
+    // Restore all deleted notes
+    for (const note of deletedNotes) {
+      note.deletedAt = null;
+      note.updatedAt = new Date();
+    }
+
+    return restoredCount;
+  }
+
+  async countDeleted() {
+    return this.notes.filter(note => note.deletedAt !== null).length;
+  }
+
+  async delete(id) {
+    return this.moveToRecycleBin(id);
   }
 }
 
@@ -67,22 +127,26 @@ describe('Notes Routes', () => {
   describe('GET /api/notes', () => {
     test('should return empty array when no notes exist', async () => {
       const response = await request(app).get('/api/notes');
-      
+
       expect(response.status).toBe(200);
       expect(response.body).toEqual([]);
     });
 
-    test('should return all notes', async () => {
-      // Add some test notes
-      await repository.create({ title: 'Note 1', content: 'Content 1' });
-      await repository.create({ title: 'Note 2', content: 'Content 2' });
-      
+    test('should return only active notes', async () => {
+      // Add active and deleted notes
+      await repository.create({ title: 'Active Note 1', content: 'Content 1' });
+      await repository.create({ title: 'Active Note 2', content: 'Content 2' });
+      const note3 = await repository.create({ title: 'Note 3', content: 'Content 3' });
+      await repository.moveToRecycleBin(note3.id); // Move to trash
+
       const response = await request(app).get('/api/notes');
-      
+
       expect(response.status).toBe(200);
       expect(response.body.length).toBe(2);
-      expect(response.body[0].title).toBe('Note 1');
-      expect(response.body[1].title).toBe('Note 2');
+      expect(response.body[0].title).toBe('Active Note 1');
+      expect(response.body[0].deletedAt).toBeNull();
+      expect(response.body[1].title).toBe('Active Note 2');
+      expect(response.body[1].deletedAt).toBeNull();
     });
 
     test('should handle repository errors', async () => {
@@ -92,27 +156,110 @@ describe('Notes Routes', () => {
       };
 
       const response = await request(app).get('/api/notes');
-      
+
       expect(response.status).toBe(500);
       expect(response.body.error).toBe('Failed to retrieve notes');
+    });
+  });
+
+  describe('GET /api/notes/recycle-bin', () => {
+    test('should return empty array when no trashed notes exist', async () => {
+      // Add some active notes
+      await repository.create({ title: 'Active Note', content: 'Content' });
+
+      const response = await request(app).get('/api/notes/recycle-bin');
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual([]);
+    });
+
+    test('should return only trashed notes', async () => {
+      // Add active and deleted notes
+      await repository.create({ title: 'Active Note', content: 'Content' });
+      const note2 = await repository.create({ title: 'Trashed Note 1', content: 'Content 1' });
+      const note3 = await repository.create({ title: 'Trashed Note 2', content: 'Content 2' });
+      await repository.moveToRecycleBin(note2.id);
+      await repository.moveToRecycleBin(note3.id);
+
+      const response = await request(app).get('/api/notes/recycle-bin');
+
+      expect(response.status).toBe(200);
+      expect(response.body.length).toBe(2);
+      expect(response.body[0].title).toBe('Trashed Note 1');
+      expect(response.body[0].deletedAt).toBeDefined();
+      expect(response.body[1].title).toBe('Trashed Note 2');
+      expect(response.body[1].deletedAt).toBeDefined();
+    });
+
+    test('should handle repository errors', async () => {
+      repository.findDeleted = async () => {
+        throw new Error('Database error');
+      };
+
+      const response = await request(app).get('/api/notes/recycle-bin');
+
+      expect(response.status).toBe(500);
+      expect(response.body.error).toBe('Failed to retrieve deleted notes');
+    });
+  });
+
+  describe('GET /api/notes/trash (Legacy Route)', () => {
+    test('should return empty array when no trashed notes exist', async () => {
+      // Add some active notes
+      await repository.create({ title: 'Active Note', content: 'Content' });
+
+      const response = await request(app).get('/api/notes/trash');
+
+      expect(response.status).toBe(200);
+      expect(response.body).toEqual([]);
+    });
+
+    test('should return only deleted notes (same as recycle-bin)', async () => {
+      // Add active and deleted notes
+      await repository.create({ title: 'Active Note', content: 'Content' });
+      const note2 = await repository.create({ title: 'Trashed Note 1', content: 'Content 1' });
+      const note3 = await repository.create({ title: 'Trashed Note 2', content: 'Content 2' });
+      await repository.moveToRecycleBin(note2.id);
+      await repository.moveToRecycleBin(note3.id);
+
+      const response = await request(app).get('/api/notes/trash');
+
+      expect(response.status).toBe(200);
+      expect(response.body.length).toBe(2);
+      expect(response.body[0].title).toBe('Trashed Note 1');
+      expect(response.body[0].deletedAt).toBeDefined();
+      expect(response.body[1].title).toBe('Trashed Note 2');
+      expect(response.body[1].deletedAt).toBeDefined();
+    });
+
+    test('should handle repository errors', async () => {
+      repository.findDeleted = async () => {
+        throw new Error('Database error');
+      };
+
+      const response = await request(app).get('/api/notes/trash');
+
+      expect(response.status).toBe(500);
+      expect(response.body.error).toBe('Failed to retrieve deleted notes');
     });
   });
 
   describe('GET /api/notes/:id', () => {
     test('should return a note by id', async () => {
       const note = await repository.create({ title: 'Test Note', content: 'Test Content' });
-      
+
       const response = await request(app).get(`/api/notes/${note.id}`);
-      
+
       expect(response.status).toBe(200);
       expect(response.body.id).toBe(note.id);
       expect(response.body.title).toBe('Test Note');
       expect(response.body.content).toBe('Test Content');
+      expect(response.body.deletedAt).toBeNull();
     });
 
     test('should return 404 for non-existent note', async () => {
       const response = await request(app).get('/api/notes/999');
-      
+
       expect(response.status).toBe(404);
       expect(response.body.error).toBe('Note not found');
     });
@@ -123,7 +270,7 @@ describe('Notes Routes', () => {
       };
 
       const response = await request(app).get('/api/notes/1');
-      
+
       expect(response.status).toBe(500);
       expect(response.body.error).toBe('Failed to retrieve note');
     });
@@ -132,16 +279,17 @@ describe('Notes Routes', () => {
   describe('POST /api/notes', () => {
     test('should create a new note', async () => {
       const noteData = { title: 'New Note', content: 'New Content' };
-      
+
       const response = await request(app)
         .post('/api/notes')
         .send(noteData)
         .set('Content-Type', 'application/json');
-      
+
       expect(response.status).toBe(201);
       expect(response.body.title).toBe(noteData.title);
       expect(response.body.content).toBe(noteData.content);
       expect(response.body.id).toBeDefined();
+      expect(response.body.deletedAt).toBeNull();
     });
 
     test('should return 400 if title is missing', async () => {
@@ -149,7 +297,7 @@ describe('Notes Routes', () => {
         .post('/api/notes')
         .send({ content: 'Missing Title' })
         .set('Content-Type', 'application/json');
-      
+
       expect(response.status).toBe(400);
       expect(response.body.error).toBe('Title and content are required');
     });
@@ -159,7 +307,7 @@ describe('Notes Routes', () => {
         .post('/api/notes')
         .send({ title: 'Missing Content' })
         .set('Content-Type', 'application/json');
-      
+
       expect(response.status).toBe(400);
       expect(response.body.error).toBe('Title and content are required');
     });
@@ -173,7 +321,7 @@ describe('Notes Routes', () => {
         .post('/api/notes')
         .send({ title: 'Test', content: 'Test' })
         .set('Content-Type', 'application/json');
-      
+
       expect(response.status).toBe(500);
       expect(response.body.error).toBe('Failed to create note');
     });
@@ -183,15 +331,16 @@ describe('Notes Routes', () => {
     test('should update an existing note', async () => {
       const note = await repository.create({ title: 'Original', content: 'Original' });
       const updateData = { title: 'Updated', content: 'Updated' };
-      
+
       const response = await request(app)
         .put(`/api/notes/${note.id}`)
         .send(updateData)
         .set('Content-Type', 'application/json');
-      
+
       expect(response.status).toBe(200);
       expect(response.body.title).toBe(updateData.title);
       expect(response.body.content).toBe(updateData.content);
+      expect(response.body.deletedAt).toBeNull();
     });
 
     test('should return 404 for non-existent note', async () => {
@@ -199,31 +348,31 @@ describe('Notes Routes', () => {
         .put('/api/notes/999')
         .send({ title: 'Test', content: 'Test' })
         .set('Content-Type', 'application/json');
-      
+
       expect(response.status).toBe(404);
       expect(response.body.error).toBe('Note not found');
     });
 
     test('should return 400 if title is missing', async () => {
       const note = await repository.create({ title: 'Original', content: 'Original' });
-      
+
       const response = await request(app)
         .put(`/api/notes/${note.id}`)
         .send({ content: 'Missing Title' })
         .set('Content-Type', 'application/json');
-      
+
       expect(response.status).toBe(400);
       expect(response.body.error).toBe('Title and content are required');
     });
 
     test('should return 400 if content is missing', async () => {
       const note = await repository.create({ title: 'Original', content: 'Original' });
-      
+
       const response = await request(app)
         .put(`/api/notes/${note.id}`)
         .send({ title: 'Missing Content' })
         .set('Content-Type', 'application/json');
-      
+
       expect(response.status).toBe(400);
       expect(response.body.error).toBe('Title and content are required');
     });
@@ -237,41 +386,244 @@ describe('Notes Routes', () => {
         .put('/api/notes/1')
         .send({ title: 'Test', content: 'Test' })
         .set('Content-Type', 'application/json');
-      
+
       expect(response.status).toBe(500);
       expect(response.body.error).toBe('Failed to update note');
     });
   });
 
-  describe('DELETE /api/notes/:id', () => {
-    test('should delete an existing note', async () => {
-      const note = await repository.create({ title: 'To Delete', content: 'To Delete' });
-      
-      const response = await request(app).delete(`/api/notes/${note.id}`);
-      
+  describe('POST /api/notes/:id/restore', () => {
+    test('should restore a trashed note', async () => {
+      const note = await repository.create({ title: 'To Restore', content: 'Content' });
+      await repository.moveToRecycleBin(note.id);
+
+      const response = await request(app).post(`/api/notes/${note.id}/restore`);
+
       expect(response.status).toBe(204);
-      
-      // Verify note is deleted
-      const getResponse = await request(app).get(`/api/notes/${note.id}`);
-      expect(getResponse.status).toBe(404);
+
+      // Verify note is restored
+      const restoredNote = await repository.findById(note.id);
+      expect(restoredNote.deletedAt).toBe(null);
     });
 
     test('should return 404 for non-existent note', async () => {
-      const response = await request(app).delete('/api/notes/999');
-      
+      const response = await request(app).post('/api/notes/999/restore');
+
       expect(response.status).toBe(404);
       expect(response.body.error).toBe('Note not found');
     });
 
     test('should handle repository errors', async () => {
-      repository.delete = async () => {
+      repository.restore = async () => {
+        throw new Error('Database error');
+      };
+
+      const response = await request(app).post('/api/notes/1/restore');
+
+      expect(response.status).toBe(500);
+      expect(response.body.error).toBe('Failed to restore note');
+    });
+  });
+
+  describe('DELETE /api/notes/:id', () => {
+    test('should move note to trash (soft delete)', async () => {
+      const note = await repository.create({ title: 'To Trash', content: 'Content' });
+
+      const response = await request(app).delete(`/api/notes/${note.id}`);
+
+      expect(response.status).toBe(204);
+
+      // Verify note is moved to trash, not deleted
+      const deletedNote = await repository.findById(note.id);
+      expect(deletedNote).not.toBe(null);
+      expect(deletedNote.status).toBe('trashed');
+      expect(deletedNote.deletedAt).toBeDefined();
+    });
+
+    test('should return 404 for non-existent note', async () => {
+      const response = await request(app).delete('/api/notes/999');
+
+      expect(response.status).toBe(404);
+      expect(response.body.error).toBe('Note not found');
+    });
+
+    test('should handle repository errors', async () => {
+      repository.moveToRecycleBin = async () => {
         throw new Error('Database error');
       };
 
       const response = await request(app).delete('/api/notes/1');
-      
+
       expect(response.status).toBe(500);
-      expect(response.body.error).toBe('Failed to delete note');
+      expect(response.body.error).toBe('Failed to move note to recycle bin');
+    });
+  });
+
+  describe('DELETE /api/notes/:id/permanent', () => {
+    test('should permanently delete a note', async () => {
+      const note = await repository.create({ title: 'To Delete', content: 'Content' });
+      await repository.moveToRecycleBin(note.id);
+
+      const response = await request(app).delete(`/api/notes/${note.id}/permanent`);
+
+      expect(response.status).toBe(204);
+
+      // Verify note is permanently deleted
+      const deletedNote = await repository.findById(note.id);
+      expect(deletedNote).toBe(null);
+    });
+
+    test('should return 404 for non-existent note', async () => {
+      const response = await request(app).delete('/api/notes/999/permanent');
+
+      expect(response.status).toBe(404);
+      expect(response.body.error).toBe('Note not found');
+    });
+
+    test('should handle repository errors', async () => {
+      repository.permanentDelete = async () => {
+        throw new Error('Database error');
+      };
+
+      const response = await request(app).delete('/api/notes/1/permanent');
+
+      expect(response.status).toBe(500);
+      expect(response.body.error).toBe('Failed to permanently delete note');
+    });
+  });
+
+  describe('GET /api/notes/recycle-bin/count', () => {
+    test('should return count of deleted notes', async () => {
+      // Add some notes and delete some
+      const note1 = await repository.create({ title: 'Note 1', content: 'Content 1' });
+      const note2 = await repository.create({ title: 'Note 2', content: 'Content 2' });
+      const note3 = await repository.create({ title: 'Note 3', content: 'Content 3' });
+
+      await repository.moveToRecycleBin(note1.id);
+      await repository.moveToRecycleBin(note2.id);
+
+      const response = await request(app).get('/api/notes/recycle-bin/count');
+
+      expect(response.status).toBe(200);
+      expect(response.body.count).toBe(2);
+    });
+
+    test('should return zero when no deleted notes exist', async () => {
+      // Add some active notes only
+      await repository.create({ title: 'Active Note', content: 'Content' });
+
+      const response = await request(app).get('/api/notes/recycle-bin/count');
+
+      expect(response.status).toBe(200);
+      expect(response.body.count).toBe(0);
+    });
+
+    test('should handle repository errors', async () => {
+      repository.countDeleted = async () => {
+        throw new Error('Database error');
+      };
+
+      const response = await request(app).get('/api/notes/recycle-bin/count');
+
+      expect(response.status).toBe(500);
+      expect(response.body.error).toBe('Failed to count deleted notes');
+    });
+  });
+
+  describe('DELETE /api/notes/recycle-bin', () => {
+    test('should empty recycle bin and return count', async () => {
+      // Add some notes and delete some
+      const note1 = await repository.create({ title: 'Note 1', content: 'Content 1' });
+      const note2 = await repository.create({ title: 'Note 2', content: 'Content 2' });
+      const note3 = await repository.create({ title: 'Note 3', content: 'Content 3' });
+
+      await repository.moveToRecycleBin(note1.id);
+      await repository.moveToRecycleBin(note2.id);
+
+      const response = await request(app).delete('/api/notes/recycle-bin');
+
+      expect(response.status).toBe(200);
+      expect(response.body.message).toBe('Recycle bin emptied successfully');
+      expect(response.body.deletedCount).toBe(2);
+
+      // Verify recycle bin is empty
+      const deletedNotes = await repository.findDeleted();
+      expect(deletedNotes.length).toBe(0);
+
+      // Verify active note still exists
+      const activeNotes = await repository.findAll();
+      expect(activeNotes.length).toBe(1);
+      expect(activeNotes[0].id).toBe(note3.id);
+    });
+
+    test('should return zero when recycle bin is already empty', async () => {
+      // Add some active notes only
+      await repository.create({ title: 'Active Note', content: 'Content' });
+
+      const response = await request(app).delete('/api/notes/recycle-bin');
+
+      expect(response.status).toBe(200);
+      expect(response.body.message).toBe('Recycle bin emptied successfully');
+      expect(response.body.deletedCount).toBe(0);
+    });
+
+    test('should handle repository errors', async () => {
+      repository.emptyRecycleBin = async () => {
+        throw new Error('Database error');
+      };
+
+      const response = await request(app).delete('/api/notes/recycle-bin');
+
+      expect(response.status).toBe(500);
+      expect(response.body.error).toBe('Failed to empty recycle bin');
+    });
+  });
+
+  describe('POST /api/notes/recycle-bin/restore-all', () => {
+    test('should restore all notes from recycle bin and return count', async () => {
+      // Add some notes and delete some
+      const note1 = await repository.create({ title: 'Note 1', content: 'Content 1' });
+      const note2 = await repository.create({ title: 'Note 2', content: 'Content 2' });
+      const note3 = await repository.create({ title: 'Note 3', content: 'Content 3' });
+
+      await repository.moveToRecycleBin(note1.id);
+      await repository.moveToRecycleBin(note2.id);
+
+      const response = await request(app).post('/api/notes/recycle-bin/restore-all');
+
+      expect(response.status).toBe(200);
+      expect(response.body.message).toBe('All notes restored successfully');
+      expect(response.body.restoredCount).toBe(2);
+
+      // Verify all notes are now active
+      const activeNotes = await repository.findAll();
+      expect(activeNotes.length).toBe(3);
+
+      // Verify recycle bin is empty
+      const deletedNotes = await repository.findDeleted();
+      expect(deletedNotes.length).toBe(0);
+    });
+
+    test('should return zero when recycle bin is already empty', async () => {
+      // Add some active notes only
+      await repository.create({ title: 'Active Note', content: 'Content' });
+
+      const response = await request(app).post('/api/notes/recycle-bin/restore-all');
+
+      expect(response.status).toBe(200);
+      expect(response.body.message).toBe('All notes restored successfully');
+      expect(response.body.restoredCount).toBe(0);
+    });
+
+    test('should handle repository errors', async () => {
+      repository.restoreAll = async () => {
+        throw new Error('Database error');
+      };
+
+      const response = await request(app).post('/api/notes/recycle-bin/restore-all');
+
+      expect(response.status).toBe(500);
+      expect(response.body.error).toBe('Failed to restore all notes');
     });
   });
 });
