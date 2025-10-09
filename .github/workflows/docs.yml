@@ -11,7 +11,7 @@ on:
 jobs:
   # Single documentation generation job
   generate-docs:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -38,7 +38,7 @@ jobs:
   # Quality checks using generated documentation
   docs-quality:
     needs: generate-docs
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-22.04
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -73,7 +73,7 @@ jobs:
   # Deploy to GitHub Pages using generated documentation
   deploy-docs:
     needs: [ generate-docs, docs-quality ]
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-22.04
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
     # Required for GitHub Pages deployment
