@@ -1,4 +1,4 @@
-FROM node:22.16-alpine3.22
+FROM node:22.20-alpine3.22
 
 # Install wget for health checks
 RUN apk add --no-cache wget
