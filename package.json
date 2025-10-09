@@ -43,7 +43,7 @@
     "express": "^5.1.0",
     "helmet": "^8.1.0",
     "mongoose": "^8.15.1",
-    "nano": "^10.1.4"
+    "nano": "^11.0.2"
   },
   "devDependencies": {
     "@jest/globals": "^30.2.0",
