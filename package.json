@@ -1,7 +1,7 @@
 {
   "name": "nodejs-simple-notes-app",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "src/notes-api-server.js",
   "type": "module",
   "engines": {
     "node": ">=22.0.0 <23.0.0",
