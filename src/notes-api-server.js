@@ -7,6 +7,7 @@ import {fileURLToPath} from 'url';
 import {CouchDbNoteRepository} from './db/couchdb-note-repository.js';
 import {MongoDbNoteRepository} from './db/mongodb-note-repository.js';
 import {createNotesRouter} from './routes/notes-routes.js';
+import { createLogger } from './logger.js';
 
 // Load environment variables
 dotenv.config();
@@ -27,6 +28,8 @@ export const MONGODB_DB_NAME = process.env.MONGODB_DB_NAME || 'notes_db';
 // Get the directory name
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+const log = createLogger('NotesServer');
 
 /**
  * NotesServer class encapsulates server lifecycle and eliminates module-level state.
@@ -79,10 +82,10 @@ export class NotesServer {
         // Use current environment variable value, not cached constant
         const dbVendor = process.env.DB_VENDOR || 'couchdb';
         if (dbVendor === 'mongodb') {
-            console.log('Using MongoDB as the database vendor');
+            log.info('Using MongoDB as the database vendor');
             return new MongoDbNoteRepository(MONGODB_URL, MONGODB_DB_NAME);
         } else {
-            console.log('Using CouchDB as the database vendor');
+            log.info('Using CouchDB as the database vendor');
             return new CouchDbNoteRepository(COUCHDB_URL, COUCHDB_DB_NAME);
         }
     }
@@ -101,16 +104,18 @@ export class NotesServer {
      * server.gracefulShutdown(5000); // 5 second timeout
      */
     gracefulShutdown(timeout = 10000) {
-        console.log('Shutting down gracefully...');
+        log.info('Shutting down gracefully...');
         if (this.server) {
             // Store timeout ID so we can clear it if shutdown completes
-            const forceShutdownTimeout = setTimeout(() => {
-                console.error('Could not close connections in time, forcefully shutting down');
+            const forceShutdownTimeout = setTimeout(
+                // istanbul ignore next: timing-based forced shutdown path is CLI-only and hard to simulate deterministically
+                () => {
+                log.error('Could not close connections in time, forcefully shutting down');
                 process.exit(1);
             }, timeout);
 
             this.server.close(() => {
-                console.log('HTTP server closed');
+                log.info('HTTP server closed');
                 // Clear the force shutdown timeout since we completed gracefully
                 clearTimeout(forceShutdownTimeout);
                 // Close database connections, etc.
@@ -159,7 +164,7 @@ export class NotesServer {
 
             // Initialize the repository
             await repository.init();
-            console.log('Repository initialized successfully');
+            log.info('Repository initialized successfully');
 
             // Create and mount the notes router
             const notesRouter = createNotesRouter(repository);
@@ -182,7 +187,7 @@ export class NotesServer {
 
             // Error handling middleware
             this.app.use((err, req, res, next) => {
-                console.error('Unhandled error:', err);
+                log.error('Unhandled error:', err);
 
                 // Handle JSON parsing errors
                 if (err.type === 'entity.parse.failed') {
@@ -195,7 +200,7 @@ export class NotesServer {
 
             return { app: this.app, repository };
         } catch (error) {
-            console.error('Failed to initialize application:', error);
+            log.error('Failed to initialize application:', error);
             throw error;
         }
     }
@@ -216,16 +221,16 @@ export class NotesServer {
         // Convert PORT to number to ensure correct type for the test
         const port = parseInt(PORT, 10);
         this.server = this.app.listen(port, HOST, () => {
-            console.log(`Notes API server is running at http://${HOST}:${port}`);
-            console.log('Available endpoints:');
-            console.log('  GET    /                - Web UI for notes management');
-            console.log('  GET    /api/notes       - Get all notes');
-            console.log('  GET    /api/notes/:id   - Get a note by ID');
-            console.log('  POST   /api/notes       - Create a new note');
-            console.log('  PUT    /api/notes/:id   - Update a note');
-            console.log('  DELETE /api/notes/:id   - Delete a note');
-            console.log('  GET    /health          - Health check');
-            console.log('\nOpen your browser at http://localhost:' + port + ' to use the Notes UI');
+            log.info(`Notes API server is running at http://${HOST}:${port}`);
+            log.info('Available endpoints:');
+            log.info('  GET    /                - Web UI for notes management');
+            log.info('  GET    /api/notes       - Get all notes');
+            log.info('  GET    /api/notes/:id   - Get a note by ID');
+            log.info('  POST   /api/notes       - Create a new note');
+            log.info('  PUT    /api/notes/:id   - Update a note');
+            log.info('  DELETE /api/notes/:id   - Delete a note');
+            log.info('  GET    /health          - Health check');
+            log.info('\nOpen your browser at http://localhost:' + port + ' to use the Notes UI');
         });
 
         // Handle graceful shutdown
@@ -297,15 +302,21 @@ export const initializeApp = (noteRepository = null) => globalNotesServer.initia
  */
 export const startServer = () => globalNotesServer.startServer();
 
-// Only start the server if this file is run directly (not imported)
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Exported entrypoint function for testability and CLI usage
+export async function mainEntry() {
     const notesServer = new NotesServer();
-    notesServer.initializeApp()
-        .then(() => {
-            notesServer.startServer();
-        })
-        .catch(error => {
-            console.error('Application startup failed:', error);
-            process.exit(1);
-        });
+    try {
+        await notesServer.initializeApp();
+        notesServer.startServer();
+    } catch (error) {
+        log.error('Application startup failed:', error);
+        process.exit(1);
+    }
+}
+
+// Only start the server if this file is run directly (not imported)
+/* istanbul ignore next: CLI-only startup path not executed in tests */
+if (import.meta.url === `file://${process.argv[1]}`) {
+    // Use void to avoid unhandled promise warnings
+    void mainEntry();
 }

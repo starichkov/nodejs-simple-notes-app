@@ -1,4 +1,5 @@
 import express from 'express';
+import { createLogger } from '../logger.js';
 
 /**
  * Create a router for note-related endpoints
@@ -14,6 +15,7 @@ import express from 'express';
  */
 export function createNotesRouter(noteRepository) {
     const router = express.Router();
+    const log = createLogger('NotesRoutes');
 
     /**
      * @name GET /notes
@@ -39,7 +41,7 @@ export function createNotesRouter(noteRepository) {
             const notes = await noteRepository.findAll();
             res.json(notes.map(note => note.toObject()));
         } catch (error) {
-            console.error('Error getting all notes:', error);
+            log.error('Error getting all notes:', error);
             res.status(500).json({ error: 'Failed to retrieve notes' });
         }
     });
@@ -68,7 +70,7 @@ export function createNotesRouter(noteRepository) {
             const notes = await noteRepository.findDeleted();
             res.json(notes.map(note => note.toObject()));
         } catch (error) {
-            console.error('Error getting deleted notes:', error);
+            log.error('Error getting deleted notes:', error);
             res.status(500).json({ error: 'Failed to retrieve deleted notes' });
         }
     });
@@ -84,7 +86,7 @@ export function createNotesRouter(noteRepository) {
             const notes = await noteRepository.findDeleted();
             res.json(notes.map(note => note.toObject()));
         } catch (error) {
-            console.error('Error getting deleted notes:', error);
+            log.error('Error getting deleted notes:', error);
             res.status(500).json({ error: 'Failed to retrieve deleted notes' });
         }
     });
@@ -106,7 +108,7 @@ export function createNotesRouter(noteRepository) {
             const count = await noteRepository.countDeleted();
             res.json({ count });
         } catch (error) {
-            console.error('Error counting deleted notes:', error);
+            log.error('Error counting deleted notes:', error);
             res.status(500).json({ error: 'Failed to count deleted notes' });
         }
     });
@@ -132,7 +134,7 @@ export function createNotesRouter(noteRepository) {
                 deletedCount 
             });
         } catch (error) {
-            console.error('Error emptying recycle bin:', error);
+            log.error('Error emptying recycle bin:', error);
             res.status(500).json({ error: 'Failed to empty recycle bin' });
         }
     });
@@ -158,7 +160,7 @@ export function createNotesRouter(noteRepository) {
                 restoredCount 
             });
         } catch (error) {
-            console.error('Error restoring all notes:', error);
+            log.error('Error restoring all notes:', error);
             res.status(500).json({ error: 'Failed to restore all notes' });
         }
     });
@@ -190,7 +192,7 @@ export function createNotesRouter(noteRepository) {
             }
             res.json(note.toObject());
         } catch (error) {
-            console.error(`Error getting note with ID ${req.params.id}:`, error);
+            log.error(`Error getting note with ID ${req.params.id}:`, error);
             res.status(500).json({ error: 'Failed to retrieve note' });
         }
     });
@@ -236,7 +238,7 @@ export function createNotesRouter(noteRepository) {
 
             res.status(201).json(note.toObject());
         } catch (error) {
-            console.error('Error creating note:', error);
+            log.error('Error creating note:', error);
             res.status(500).json({ error: 'Failed to create note' });
         }
     });
@@ -288,7 +290,7 @@ export function createNotesRouter(noteRepository) {
 
             res.json(note.toObject());
         } catch (error) {
-            console.error(`Error updating note with ID ${req.params.id}:`, error);
+            log.error(`Error updating note with ID ${req.params.id}:`, error);
             res.status(500).json({ error: 'Failed to update note' });
         }
     });
@@ -318,7 +320,7 @@ export function createNotesRouter(noteRepository) {
 
             res.status(204).end();
         } catch (error) {
-            console.error(`Error restoring note with ID ${req.params.id}:`, error);
+            log.error(`Error restoring note with ID ${req.params.id}:`, error);
             res.status(500).json({ error: 'Failed to restore note' });
         }
     });
@@ -347,7 +349,7 @@ export function createNotesRouter(noteRepository) {
 
             res.status(204).end();
         } catch (error) {
-            console.error(`Error moving note to recycle bin with ID ${req.params.id}:`, error);
+            log.error(`Error moving note to recycle bin with ID ${req.params.id}:`, error);
             res.status(500).json({ error: 'Failed to move note to recycle bin' });
         }
     });
@@ -377,7 +379,7 @@ export function createNotesRouter(noteRepository) {
 
             res.status(204).end();
         } catch (error) {
-            console.error(`Error permanently deleting note with ID ${req.params.id}:`, error);
+            log.error(`Error permanently deleting note with ID ${req.params.id}:`, error);
             res.status(500).json({ error: 'Failed to permanently delete note' });
         }
     });

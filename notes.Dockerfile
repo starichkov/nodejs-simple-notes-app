@@ -18,7 +18,11 @@ WORKDIR /app
 COPY --from=builder --chown=node:node /app/node_modules ./node_modules
 
 # Copy the application code to the container (only what's needed to run)
+# Include package.json so Node recognizes ESM (type: module)
+COPY --chown=node:node package.json ./
 COPY --chown=node:node src/notes-api-server.js .
+# Include the shared logger module required at runtime
+COPY --chown=node:node src/logger.js .
 COPY --chown=node:node src/public ./public
 COPY --chown=node:node src/db ./db
 COPY --chown=node:node src/models ./models
