@@ -1,23 +1,31 @@
-FROM node:22.20-alpine3.22
+# syntax=docker/dockerfile:1
 
+# Build stage: install only production dependencies
+FROM node:22.20-alpine3.22 AS builder
+WORKDIR /app
+COPY package*.json ./
+# Install reproducible, production-only deps and clean cache
+RUN npm ci --only=production && npm cache clean --force
+
+# Runtime stage: minimal image, non-root user
+FROM node:22.20-alpine3.22 AS runner
 # Install wget for health checks
 RUN apk add --no-cache wget
-
-# Set the working directory inside the container
+ENV NODE_ENV=production
 WORKDIR /app
 
-# Copy package.json and package-lock.json if they exist
-COPY package*.json ./
+# Copy only production dependencies from builder
+COPY --from=builder --chown=node:node /app/node_modules ./node_modules
 
-# Install the dependencies
-RUN npm install
+# Copy the application code to the container (only what's needed to run)
+COPY --chown=node:node src/notes-api-server.js .
+COPY --chown=node:node src/public ./public
+COPY --chown=node:node src/db ./db
+COPY --chown=node:node src/models ./models
+COPY --chown=node:node src/routes ./routes
 
-# Copy the application code to the container
-COPY src/notes-api-server.js .
-COPY src/public ./public
-COPY src/db ./db
-COPY src/models ./models
-COPY src/routes ./routes
+# Drop privileges to non-root user provided by the Node image
+USER node
 
 # Expose the port the Express server will run on
 EXPOSE 3000
