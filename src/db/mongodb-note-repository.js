@@ -1,6 +1,9 @@
 import mongoose from 'mongoose';
 import { NoteRepository } from './note-repository.js';
 import { Note } from '../models/note.js';
+import { createLogger } from '../logger.js';
+
+const log = createLogger('MongoDbNoteRepository');
 
 /**
  * MongoDB implementation of the NoteRepository interface.
@@ -51,7 +54,7 @@ export class MongoDbNoteRepository extends NoteRepository {
             // const connectionUrl = this.url.endsWith('/') ? this.url + this.dbName : this.url + '/' + this.dbName;
             // await mongoose.connect(connectionUrl);
             // await mongoose.connect(`${this.url}/${this.dbName}`);
-            console.log(`Connected to MongoDB database: ${this.dbName}`);
+            log.info(`Connected to MongoDB database: ${this.dbName}`);
 
             // Define the schema if it doesn't exist
             if (!this.NoteModel) {
@@ -66,7 +69,7 @@ export class MongoDbNoteRepository extends NoteRepository {
                 this.NoteModel = mongoose.model('Note', noteSchema);
             }
         } catch (error) {
-            console.error('Failed to initialize MongoDB repository:', error);
+            log.error('Failed to initialize MongoDB repository:', error);
             throw error;
         }
     }
@@ -91,7 +94,7 @@ export class MongoDbNoteRepository extends NoteRepository {
                 updatedAt: doc.updatedAt
             }));
         } catch (error) {
-            console.error('Failed to find all active notes:', error);
+            log.error('Failed to find all active notes:', error);
             throw error;
         }
     }
@@ -116,7 +119,7 @@ export class MongoDbNoteRepository extends NoteRepository {
                 updatedAt: doc.updatedAt
             }));
         } catch (error) {
-            console.error('Failed to find deleted notes:', error);
+            log.error('Failed to find deleted notes:', error);
             throw error;
         }
     }
@@ -138,7 +141,7 @@ export class MongoDbNoteRepository extends NoteRepository {
                 updatedAt: doc.updatedAt
             }));
         } catch (error) {
-            console.error('Failed to find all notes including deleted:', error);
+            log.error('Failed to find all notes including deleted:', error);
             throw error;
         }
     }
@@ -174,7 +177,7 @@ export class MongoDbNoteRepository extends NoteRepository {
             if (error.name === 'CastError') {
                 return null;
             }
-            console.error(`Failed to find note with ID ${id}:`, error);
+            log.error(`Failed to find note with ID ${id}:`, error);
             throw error;
         }
     }
@@ -215,7 +218,7 @@ export class MongoDbNoteRepository extends NoteRepository {
                 updatedAt: new Date(savedNote.updatedAt)
             });
         } catch (error) {
-            console.error('Failed to create note:', error);
+            log.error('Failed to create note:', error);
             throw error;
         }
     }
@@ -268,7 +271,7 @@ export class MongoDbNoteRepository extends NoteRepository {
             if (error.name === 'CastError') {
                 return null;
             }
-            console.error(`Failed to update note with ID ${id}:`, error);
+            log.error(`Failed to update note with ID ${id}:`, error);
             throw error;
         }
     }
@@ -301,7 +304,7 @@ export class MongoDbNoteRepository extends NoteRepository {
             if (error.name === 'CastError') {
                 return false;
             }
-            console.error(`Failed to move note to recycle bin with ID ${id}:`, error);
+            log.error(`Failed to move note to recycle bin with ID ${id}:`, error);
             throw error;
         }
     }
@@ -334,7 +337,7 @@ export class MongoDbNoteRepository extends NoteRepository {
             if (error.name === 'CastError') {
                 return false;
             }
-            console.error(`Failed to restore note with ID ${id}:`, error);
+            log.error(`Failed to restore note with ID ${id}:`, error);
             throw error;
         }
     }
@@ -360,7 +363,7 @@ export class MongoDbNoteRepository extends NoteRepository {
             if (error.name === 'CastError') {
                 return false;
             }
-            console.error(`Failed to permanently delete note with ID ${id}:`, error);
+            log.error(`Failed to permanently delete note with ID ${id}:`, error);
             throw error;
         }
     }
@@ -378,7 +381,7 @@ export class MongoDbNoteRepository extends NoteRepository {
             const result = await this.NoteModel.deleteMany({ deletedAt: { $ne: null } });
             return result.deletedCount || 0;
         } catch (error) {
-            console.error('Failed to empty recycle bin:', error);
+            log.error('Failed to empty recycle bin:', error);
             throw error;
         }
     }
@@ -403,7 +406,7 @@ export class MongoDbNoteRepository extends NoteRepository {
             );
             return result.modifiedCount || 0;
         } catch (error) {
-            console.error('Failed to restore all notes from recycle bin:', error);
+            log.error('Failed to restore all notes from recycle bin:', error);
             throw error;
         }
     }
@@ -421,7 +424,7 @@ export class MongoDbNoteRepository extends NoteRepository {
             const count = await this.NoteModel.countDocuments({ deletedAt: { $ne: null } });
             return count;
         } catch (error) {
-            console.error('Failed to count deleted notes:', error);
+            log.error('Failed to count deleted notes:', error);
             throw error;
         }
     }
