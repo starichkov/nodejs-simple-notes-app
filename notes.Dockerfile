@@ -1,14 +1,14 @@
 # syntax=docker/dockerfile:1
 
 # Build stage: install only production dependencies
-FROM node:22.20-alpine3.22 AS builder
+FROM node:22.21.1-alpine3.22 AS builder
 WORKDIR /app
 COPY package*.json ./
 # Install reproducible, production-only deps and clean cache
 RUN npm ci --only=production && npm cache clean --force
 
 # Runtime stage: minimal image, non-root user
-FROM node:22.20-alpine3.22 AS runner
+FROM node:22.21.1-alpine3.22 AS runner
 # Install wget for health checks
 RUN apk add --no-cache wget
 ENV NODE_ENV=production
