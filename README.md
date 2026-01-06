@@ -43,8 +43,8 @@ These are the versions this sample app is coming with:
 - Node.js (v22 or higher)
 - npm or pnpm
 - One of the following databases:
-  - CouchDB (v3.4.3 or higher)
-  - MongoDB (v7.0 or higher)
+  - CouchDB (v3.5.1 or higher)
+  - MongoDB (v7.0.28 or higher)
 
 Stable work on lower versions is not guaranteed.
 
