@@ -10,7 +10,7 @@ describe('CouchDbNoteRepository Integration Tests', () => {
     beforeAll(async () => {
         console.log('Starting CouchDB container...');
         // Start CouchDB container
-        container = await new GenericContainer('couchdb:3.4.3')
+        container = await new GenericContainer('couchdb:3.5.1')
             .withExposedPorts(5984)
             .withEnvironment({
                 COUCHDB_USER: 'admin',
