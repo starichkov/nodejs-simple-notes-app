@@ -516,4 +516,81 @@ describe('CouchDbNoteRepository Error Scenarios', () => {
             expect(result).toEqual([]);
         });
     });
+
+    describe('Additional Coverage', () => {
+        test('init should log when updating existing design document with missing views', async () => {
+            const existingDoc = {
+                _id: '_design/notes',
+                _rev: '1-abc',
+                views: {
+                    all: { map: 'function(doc) { emit(doc._id, null); }' }
+                }
+            };
+
+            const mockDb = {
+                get: jest.fn().mockResolvedValue(existingDoc),
+                insert: jest.fn().mockResolvedValue({ ok: true })
+            };
+            const mockClient = {
+                db: {
+                    list: jest.fn().mockResolvedValue(['test_notes_error_db'])
+                },
+                use: jest.fn().mockReturnValue(mockDb)
+            };
+            
+            repository.client = mockClient;
+
+            const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+            await repository.init();
+            
+            expect(consoleSpy).toHaveBeenCalledWith('Updated design document with all views');
+            consoleSpy.mockRestore();
+        });
+
+        test('moveToRecycleBin should return false when insert throws 404', async () => {
+            const mockDb = {
+                get: jest.fn().mockResolvedValue({ _id: 'note1', _rev: '1-rev' }),
+                insert: jest.fn().mockRejectedValue({ statusCode: 404 })
+            };
+            repository.db = mockDb;
+
+            const result = await repository.moveToRecycleBin('note1');
+            expect(result).toBe(false);
+        });
+
+        test('restore should return false when insert throws 404', async () => {
+            const mockDb = {
+                get: jest.fn().mockResolvedValue({ _id: 'note1', _rev: '1-rev' }),
+                insert: jest.fn().mockRejectedValue({ statusCode: 404 })
+            };
+            repository.db = mockDb;
+
+            const result = await repository.restore('note1');
+            expect(result).toBe(false);
+        });
+
+        test('permanentDelete should return false when destroy throws 404', async () => {
+            const mockDb = {
+                get: jest.fn().mockResolvedValue({ _id: 'note1', _rev: '1-rev' }),
+                destroy: jest.fn().mockRejectedValue({ statusCode: 404 })
+            };
+            repository.db = mockDb;
+
+            const result = await repository.permanentDelete('note1');
+            expect(result).toBe(false);
+        });
+
+        test('restoreAll should handle errors', async () => {
+            repository.findDeleted = jest.fn().mockRejectedValue(new Error('findDeleted failed'));
+            await expect(repository.restoreAll()).rejects.toThrow('findDeleted failed');
+        });
+
+        test('countDeleted should handle errors', async () => {
+            const mockDb = {
+                view: jest.fn().mockRejectedValue(new Error('view failed'))
+            };
+            repository.db = mockDb;
+            await expect(repository.countDeleted()).rejects.toThrow('view failed');
+        });
+    });
 });

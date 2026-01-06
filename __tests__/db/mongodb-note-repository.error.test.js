@@ -417,5 +417,36 @@ describe('MongoDbNoteRepository Error Handling Tests', () => {
             await expect(repository.countDeleted()).rejects.toThrow('No connection to database');
             expect(console.error).toHaveBeenCalledWith('Failed to count deleted notes:', expect.any(Error));
         });
+
+        test('should handle restoreAll database errors', async () => {
+            repository.NoteModel.updateMany = jest.fn().mockRejectedValue(new Error('Update failed'));
+            await expect(repository.restoreAll()).rejects.toThrow('Update failed');
+            expect(console.error).toHaveBeenCalledWith('Failed to restore all notes from recycle bin:', expect.any(Error));
+        });
+
+        test('should handle emptyRecycleBin database errors', async () => {
+            repository.NoteModel.deleteMany = jest.fn().mockRejectedValue(new Error('Delete failed'));
+            await expect(repository.emptyRecycleBin()).rejects.toThrow('Delete failed');
+            expect(console.error).toHaveBeenCalledWith('Failed to empty recycle bin:', expect.any(Error));
+        });
+
+        test('init should not re-create model if it exists', async () => {
+            mongoose.connect = jest.fn().mockResolvedValue();
+            repository.NoteModel = { some: 'model' };
+            await repository.init();
+            expect(repository.NoteModel).toEqual({ some: 'model' });
+        });
+
+        test('restoreAll should return 0 if no notes modified', async () => {
+            repository.NoteModel.updateMany = jest.fn().mockResolvedValue({ modifiedCount: 0 });
+            const result = await repository.restoreAll();
+            expect(result).toBe(0);
+        });
+
+        test('emptyRecycleBin should return 0 if no notes deleted', async () => {
+            repository.NoteModel.deleteMany = jest.fn().mockResolvedValue({ deletedCount: 0 });
+            const result = await repository.emptyRecycleBin();
+            expect(result).toBe(0);
+        });
     });
-}); 
+});
