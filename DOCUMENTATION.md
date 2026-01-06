@@ -278,21 +278,21 @@ The JSDoc configuration is in `jsdoc.config.json`:
 ```
 
 ### Node.js Version Requirements
-The documentation system is optimized for **Node.js 22 LTS**:
+The documentation system supports **Node.js 20, 22, and 24 LTS**:
 
 ```json
-// package.json
-"engines": {
-  "node": ">=22.0.0 <23.0.0",  // LTS 22.x only
-  "npm": ">=10.0.0"
+{
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  }
 }
 ```
 
-**Why LTS 22.x?**
-- ✅ **Stability**: Long-term support with 30+ months lifecycle
-- ✅ **Performance**: Latest optimizations and ES module support
-- ✅ **Compatibility**: All JSDoc and tooling dependencies supported
-- ✅ **CI/CD**: Consistent environment across local and GitHub Actions
+**Supported LTS Versions:**
+- ✅ **Node.js 24**: Primary development and CI version
+- ✅ **Node.js 22**: Supported LTS
+- ✅ **Node.js 20**: Supported LTS
 
 ## Integration with Development Workflow
 
@@ -316,7 +316,7 @@ jobs:
     steps:
       # 1. Setup (once)
       - Checkout code
-      - Setup Node.js 22 (LTS)
+      - Setup Node.js 24 (LTS)
       - Install dependencies
 
       # 2. Build
@@ -345,7 +345,7 @@ jobs:
 - **Single job design** eliminates redundant setups
 - **Conditional deployment** (main branch only)
 - **Artifact upload** only on failure or PRs (for debugging)
-- **Node.js 22 LTS** for stability and performance
+- **Node.js 24 LTS** for stability and performance
 
 ## Troubleshooting
 

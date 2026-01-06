@@ -56,7 +56,7 @@ docker-compose-tests (parallel: CouchDB + MongoDB)
 
 **Execution Flow**:
 ```
-Setup (checkout, Node.js 22, npm install)
+Setup (checkout, Node.js 24, npm install)
    ↓
 Generate (JSDoc documentation build)
    ↓
@@ -341,7 +341,7 @@ export COUCHDB_DATABASE="your_database"
 **Local development:**
 ```bash
 # Node.js LTS version (required)
-node --version    # Should be 22.x
+node --version    # Should be 24.x
 
 # Documentation generation
 npm run docs                           # Generate docs
@@ -357,11 +357,15 @@ node scripts/check-docs-coverage.js    # Quality check
 
 **Node.js Requirements:**
 ```json
-"engines": {
-  "node": ">=22.0.0 <23.0.0",  // LTS 22.x only
-  "npm": ">=10.0.0"
+{
+  "engines": {
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
+  }
 }
 ```
+
+Support is maintained for Node.js 20, 22, and 24, with 24 being the primary version used for coverage and documentation.
 
 ## 🎯 Best Practices
 

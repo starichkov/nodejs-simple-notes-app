@@ -36,17 +36,15 @@ The application follows a layered architecture with a clear separation of concer
 
 This design allows for easy switching between database vendors by implementing a new repository that adheres to the repository interface.
 
-## Prerequisites
+### Node.js Requirements:
 
-These are the versions this sample app is coming with:
-
-- Node.js (v22 or higher)
+- Node.js (v20, v22, or v24 LTS)
 - npm or pnpm
 - One of the following databases:
   - CouchDB (v3.5.1 or higher)
   - MongoDB (v7.0.28 or higher)
 
-Stable work on lower versions is not guaranteed.
+Stable work on other versions is not guaranteed. Node.js v24 is the primary development and CI version.
 
 ## Installation
 
