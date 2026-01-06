@@ -3,7 +3,7 @@
 These guidelines help Junie make minimal, correct changes to this repository and understand how to validate them.
 
 ## Project Overview
-A RESTful Notes API built with Node.js (ES Modules) and Express, featuring a database‑agnostic architecture with interchangeable NoSQL backends. The app currently supports CouchDB and MongoDB via repository implementations, includes a lightweight web UI, and provides JSDoc-based documentation and Jest tests. Target runtime is Node.js 22.
+A RESTful Notes API built with Node.js (ES Modules) and Express, featuring a database‑agnostic architecture with interchangeable NoSQL backends. The app currently supports CouchDB and MongoDB via repository implementations, includes a lightweight web UI, and provides JSDoc-based documentation and Jest tests. Target runtime includes Node.js 20, 22, and 24 (LTS versions).
 
 Key characteristics:
 - Layered design: Model → Repository (vendor-specific) → API (Express routes)
@@ -25,7 +25,7 @@ Key characteristics:
 - DOCUMENTATION.md — documentation workflow and tips
 
 ## Prerequisites
-- Node.js: 22.x (as enforced by package.json engines)
+- Node.js: 20.x, 22.x, or 24.x (as enforced by package.json engines)
 - npm: 10+
 - One database backend available locally (CouchDB ≥3.5.1 or MongoDB ≥7.0.28), or use Docker Compose
 
@@ -54,7 +54,7 @@ Ensure .env contains the required credentials before starting.
 - Run with coverage: npm run test:coverage
 - Open coverage report: npm run test:coverage:open (Linux requires xdg-open)
 Notes:
-- Jest runs under Node 22 with experimental VM modules flag set by the script
+- Jest runs under Node 24 with experimental VM modules flag set by the script
 
 ## Documentation
 - Generate docs: npm run docs
@@ -64,7 +64,7 @@ Notes:
 See DOCUMENTATION.md for details.
 
 ## Code Style and Conventions
-- ESM only ("type": "module"); prefer async/await and modern Node 22 APIs
+- ESM only ("type": "module"); prefer async/await and modern Node 24 APIs
 - Keep repository interface boundaries clean when touching data access code
 - Add or update Jest tests when changing behavior
 - JSDoc for public methods and API routes is encouraged
@@ -78,7 +78,7 @@ See DOCUMENTATION.md for details.
 - Make the minimal change required to satisfy the issue
 - When renaming code entities, use the dedicated rename tool so all references update safely
 - Prefer adding tests or adjusting existing ones to validate new behavior when applicable
-- Respect Node 22 engine; avoid adding dependencies unnecessarily
+- Respect the supported Node.js versions (20, 22, 24); avoid adding dependencies unnecessarily
 - If environment-sensitive features are involved, document .env expectations succinctly
 
 ## Helpful References
