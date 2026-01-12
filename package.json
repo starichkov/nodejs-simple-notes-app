@@ -40,17 +40,17 @@
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
-    "express": "^5.1.0",
+    "express": "^5.2.1",
     "helmet": "^8.1.0",
-    "mongoose": "^8.15.1",
-    "nano": "^11.0.2"
+    "mongoose": "^8.21.0",
+    "nano": "^11.0.3"
   },
   "devDependencies": {
     "@jest/globals": "^30.2.0",
     "@types/jest": "^30.0.0",
     "jest": "^30.2.0",
-    "jsdoc": "^4.0.4",
-    "supertest": "^7.1.4",
-    "testcontainers": "^11.7.1"
+    "jsdoc": "^4.0.5",
+    "supertest": "^7.2.2",
+    "testcontainers": "^11.11.0"
   }
 }
