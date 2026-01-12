@@ -414,4 +414,4 @@ Based on nodejs-simple-notes-app by Vadim Starichkov, TemplateTasks
 https://github.com/starichkov/nodejs-simple-notes-app
 ```
 
-**Copyright © 2025 Vadim Starichkov, TemplateTasks**
+**Copyright © 2026 Vadim Starichkov, TemplateTasks**
