@@ -278,12 +278,12 @@ The JSDoc configuration is in `jsdoc.config.json`:
 ```
 
 ### Node.js Version Requirements
-The documentation system supports **Node.js 20, 22, and 24 LTS**:
+The documentation system supports **Node.js 22 and 24 LTS**:
 
 ```json
 {
   "engines": {
-    "node": ">=20.0.0",
+    "node": ">=22.0.0",
     "npm": ">=10.0.0"
   }
 }
@@ -291,8 +291,7 @@ The documentation system supports **Node.js 20, 22, and 24 LTS**:
 
 **Supported LTS Versions:**
 - ✅ **Node.js 24**: Primary development and CI version
-- ✅ **Node.js 22**: Supported LTS
-- ✅ **Node.js 20**: Supported LTS
+- ✅ **Node.js 22**: Supported LTS baseline
 
 ## Integration with Development Workflow
 

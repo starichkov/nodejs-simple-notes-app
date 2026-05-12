@@ -38,7 +38,7 @@ This design allows for easy switching between database vendors by implementing a
 
 ### Node.js Requirements:
 
-- Node.js (v20, v22, or v24 LTS)
+- Node.js (v22 or v24 LTS)
 - npm or pnpm
 - One of the following databases:
   - CouchDB (v3.5.1 or higher)

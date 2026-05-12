@@ -359,13 +359,13 @@ node scripts/check-docs-coverage.js    # Quality check
 ```json
 {
   "engines": {
-    "node": ">=20.0.0",
+    "node": ">=22.0.0",
     "npm": ">=10.0.0"
   }
 }
 ```
 
-Support is maintained for Node.js 20, 22, and 24, with 24 being the primary version used for coverage and documentation.
+Support is maintained for Node.js 22 and 24, with 24 being the primary version used for coverage and documentation.
 
 ## 🎯 Best Practices
 
