@@ -11,7 +11,7 @@ describe('MongoDbNoteRepository Integration Tests', () => {
     beforeAll(async () => {
         console.log('Starting MongoDB container...');
         // Start MongoDB container
-        container = await new GenericContainer('mongo:8.0.21-noble')
+        container = await new GenericContainer('mongo:8.0.26-noble')
             .withExposedPorts(27017)
             .withEnvironment({
                 MONGO_INITDB_ROOT_USERNAME: 'admin',

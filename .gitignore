@@ -5,3 +5,7 @@ docs/
 versioned-docs/
 
 *.env
+
+# ai
+.junie
+.claude

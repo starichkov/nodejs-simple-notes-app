@@ -25,9 +25,9 @@ Key characteristics:
 - DOCUMENTATION.md — documentation workflow and tips
 
 ## Prerequisites
-- Node.js: 20.x, 22.x, or 24.x (as enforced by package.json engines)
+- Node.js: 22.x or 24.x (as enforced by package.json engines)
 - npm: 10+
-- One database backend available locally (CouchDB ≥3.5.1 or MongoDB ≥7.0.28), or use Docker Compose
+- One database backend available locally (CouchDB ≥3.5.2.1 or MongoDB ≥8.0.26), or use Docker Compose
 
 ## Local Development
 1) Clone and install

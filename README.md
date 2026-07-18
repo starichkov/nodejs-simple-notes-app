@@ -41,8 +41,8 @@ This design allows for easy switching between database vendors by implementing a
 - Node.js (v22 or v24 LTS)
 - npm or pnpm
 - One of the following databases:
-  - CouchDB (v3.5.1 or higher)
-  - MongoDB (v8.0.17 or higher)
+  - CouchDB (v3.5.2.1 or higher)
+  - MongoDB (v8.0.26 or higher)
 
 Stable work on other versions is not guaranteed. Node.js v24 is the primary development and CI version.
 
