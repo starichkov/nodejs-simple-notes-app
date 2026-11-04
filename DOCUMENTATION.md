@@ -278,7 +278,7 @@ The JSDoc configuration is in `jsdoc.config.json`:
 ```
 
 ### Node.js Version Requirements
-The documentation system supports **Node.js 22 and 24 LTS**:
+The documentation system supports **Node.js 22, 24, and 26 LTS**:
 
 ```json
 {
@@ -290,7 +290,8 @@ The documentation system supports **Node.js 22 and 24 LTS**:
 ```
 
 **Supported LTS Versions:**
-- ✅ **Node.js 24**: Primary development and CI version
+- ✅ **Node.js 26**: Primary development and CI version
+- ✅ **Node.js 24**: Supported LTS compatibility version
 - ✅ **Node.js 22**: Supported LTS baseline
 
 ## Integration with Development Workflow
@@ -315,7 +316,7 @@ jobs:
     steps:
       # 1. Setup (once)
       - Checkout code
-      - Setup Node.js 24 (LTS)
+      - Setup Node.js 26 (LTS)
       - Install dependencies
 
       # 2. Build
@@ -344,7 +345,7 @@ jobs:
 - **Single job design** eliminates redundant setups
 - **Conditional deployment** (main branch only)
 - **Artifact upload** only on failure or PRs (for debugging)
-- **Node.js 24 LTS** for stability and performance
+- **Node.js 26 LTS** for stability and performance
 
 ## Troubleshooting
 

@@ -56,7 +56,7 @@ docker-compose-tests (parallel: CouchDB + MongoDB)
 
 **Execution Flow**:
 ```
-Setup (checkout, Node.js 24, npm install)
+Setup (checkout, Node.js 26, npm install)
    ↓
 Generate (JSDoc documentation build)
    ↓
