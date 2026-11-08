@@ -154,11 +154,11 @@ function switchToView(view) {
         fetchDeletedNotes();
         // Get the count of deleted notes to add the recycle bin buttons
         fetch(`${API_URL}/recycle-bin/count`)
-            .then(response => response.json())
-            .then(data => {
+            .then((response) => response.json())
+            .then((data) => {
                 addRecycleBinButtons(data.count);
             })
-            .catch(error => console.error('Error fetching recycle bin count:', error));
+            .catch((error) => console.error('Error fetching recycle bin count:', error));
     }
     // Update count whenever switching views
     updateRecycleBinCount();
@@ -218,7 +218,9 @@ function displayNotes(notes) {
         return;
     }
 
-    notesContainer.innerHTML = notes.map(note => `
+    notesContainer.innerHTML = notes
+        .map(
+            (note) => `
         <div class="note-card" data-id="${note.id}">
             <h3>${escapeHtml(note.title)}</h3>
             <p>${escapeHtml(note.content)}</p>
@@ -227,7 +229,9 @@ function displayNotes(notes) {
                 <button class="btn btn-warning delete-btn" data-id="${note.id}">Move to Recycle Bin</button>
             </div>
         </div>
-    `).join('');
+    `,
+        )
+        .join('');
 
     // Add event listeners using event delegation
     notesContainer.addEventListener('click', handleNoteActions);
@@ -244,9 +248,10 @@ function displayDeletedNotes(notes) {
         return;
     }
 
-    const notesHTML = notes.map(note => {
-        const deletedDate = new Date(note.deletedAt).toLocaleDateString();
-        return `
+    const notesHTML = notes
+        .map((note) => {
+            const deletedDate = new Date(note.deletedAt).toLocaleDateString();
+            return `
             <div class="note-card deleted" data-id="${note.id}">
                 <div class="note-meta">Moved to Recycle Bin on ${deletedDate}</div>
                 <h3>${escapeHtml(note.title)}</h3>
@@ -257,7 +262,8 @@ function displayDeletedNotes(notes) {
                 </div>
             </div>
         `;
-    }).join('');
+        })
+        .join('');
 
     recycleBinContainer.innerHTML = notesHTML;
 
@@ -326,7 +332,7 @@ async function handleFormSubmit(e) {
 
     const noteData = {
         title: noteTitleInput.value.trim(),
-        content: noteContentInput.value.trim()
+        content: noteContentInput.value.trim(),
     };
 
     if (!noteData.title || !noteData.content) {
@@ -344,9 +350,9 @@ async function handleFormSubmit(e) {
         const response = await fetch(url, {
             method,
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
             },
-            body: JSON.stringify(noteData)
+            body: JSON.stringify(noteData),
         });
 
         if (!response.ok) {
@@ -377,7 +383,7 @@ async function moveToRecycleBin(id) {
 
     try {
         const response = await fetch(`${API_URL}/${id}`, {
-            method: 'DELETE'
+            method: 'DELETE',
         });
 
         if (!response.ok) {
@@ -402,7 +408,7 @@ async function moveToRecycleBin(id) {
 async function restoreNote(id) {
     try {
         const response = await fetch(`${API_URL}/${id}/restore`, {
-            method: 'POST'
+            method: 'POST',
         });
 
         if (!response.ok) {
@@ -431,7 +437,7 @@ async function permanentDeleteNote(id) {
 
     try {
         const response = await fetch(`${API_URL}/${id}/permanent`, {
-            method: 'DELETE'
+            method: 'DELETE',
         });
 
         if (!response.ok) {
@@ -453,13 +459,17 @@ async function permanentDeleteNote(id) {
  * @throws {Error} When empty recycle bin fails
  */
 async function emptyRecycleBin() {
-    if (!confirm('Are you sure you want to permanently delete ALL notes in the recycle bin? This action cannot be undone.')) {
+    if (
+        !confirm(
+            'Are you sure you want to permanently delete ALL notes in the recycle bin? This action cannot be undone.',
+        )
+    ) {
         return;
     }
 
     try {
         const response = await fetch(`${API_URL}/recycle-bin`, {
-            method: 'DELETE'
+            method: 'DELETE',
         });
 
         if (!response.ok) {
@@ -490,7 +500,7 @@ async function restoreAllNotes() {
 
     try {
         const response = await fetch(`${API_URL}/recycle-bin/restore-all`, {
-            method: 'POST'
+            method: 'POST',
         });
 
         if (!response.ok) {
@@ -553,9 +563,9 @@ function handleRecycleBinActions(e) {
  */
 function escapeHtml(unsafe) {
     return unsafe
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
 }

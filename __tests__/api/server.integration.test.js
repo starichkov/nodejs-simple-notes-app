@@ -95,26 +95,26 @@ class MockNoteRepository {
 
 // Mock the repository modules
 jest.unstable_mockModule('../../src/db/couchdb-note-repository.js', () => ({
-    CouchDbNoteRepository: MockNoteRepository
+    CouchDbNoteRepository: MockNoteRepository,
 }));
 
 jest.unstable_mockModule('../../src/db/mongodb-note-repository.js', () => ({
-    MongoDbNoteRepository: MockNoteRepository
+    MongoDbNoteRepository: MockNoteRepository,
 }));
 
 // Mock dotenv to avoid loading actual .env file
 jest.unstable_mockModule('dotenv', () => ({
     default: {
-        config: jest.fn()
-    }
+        config: jest.fn(),
+    },
 }));
 
 // Mock path.join to avoid file system dependencies in tests
 jest.unstable_mockModule('path', () => ({
     default: {
         dirname: jest.fn(() => '/mock/path'),
-        join: jest.fn((...args) => args.join('/'))
-    }
+        join: jest.fn((...args) => args.join('/')),
+    },
 }));
 
 describe('Server Integration Tests', () => {
@@ -179,7 +179,7 @@ describe('Server Integration Tests', () => {
 
         test('should handle initialization errors', async () => {
             const mockRepository = {
-                init: jest.fn().mockRejectedValue(new Error('Database connection failed'))
+                init: jest.fn().mockRejectedValue(new Error('Database connection failed')),
             };
 
             await expect(initializeApp(mockRepository)).rejects.toThrow('Database connection failed');
@@ -233,9 +233,7 @@ describe('Server Integration Tests', () => {
         test('should parse JSON bodies correctly', async () => {
             const testData = { title: 'Test Note', content: 'Test content' };
 
-            const response = await request(app)
-                .post('/api/notes')
-                .send(testData);
+            const response = await request(app).post('/api/notes').send(testData);
 
             expect(response.status).toBe(201);
             expect(response.body.title).toBe(testData.title);
@@ -333,9 +331,7 @@ describe('Server Integration Tests', () => {
         test('should handle POST /api/notes', async () => {
             const noteData = { title: 'Test Note', content: 'Test Content' };
 
-            const response = await request(app)
-                .post('/api/notes')
-                .send(noteData);
+            const response = await request(app).post('/api/notes').send(noteData);
 
             expect(response.status).toBe(201);
             expect(response.body.title).toBe(noteData.title);
@@ -345,9 +341,7 @@ describe('Server Integration Tests', () => {
         test('should handle PUT /api/notes/:id', async () => {
             const noteData = { title: 'Updated Note', content: 'Updated Content' };
 
-            const response = await request(app)
-                .put('/api/notes/1')
-                .send(noteData);
+            const response = await request(app).put('/api/notes/1').send(noteData);
 
             expect(response.status).toBe(200);
             expect(response.body.title).toBe(noteData.title);
@@ -357,9 +351,7 @@ describe('Server Integration Tests', () => {
         test('should handle PUT /api/notes/:id for non-existent note', async () => {
             const noteData = { title: 'Updated Note', content: 'Updated Content' };
 
-            const response = await request(app)
-                .put('/api/notes/999')
-                .send(noteData);
+            const response = await request(app).put('/api/notes/999').send(noteData);
 
             expect(response.status).toBe(404);
         });
@@ -377,17 +369,13 @@ describe('Server Integration Tests', () => {
         });
 
         test('should validate required fields in POST', async () => {
-            const response = await request(app)
-                .post('/api/notes')
-                .send({ title: 'Missing content' });
+            const response = await request(app).post('/api/notes').send({ title: 'Missing content' });
 
             expect(response.status).toBe(400);
         });
 
         test('should validate required fields in PUT', async () => {
-            const response = await request(app)
-                .put('/api/notes/1')
-                .send({ title: 'Missing content' });
+            const response = await request(app).put('/api/notes/1').send({ title: 'Missing content' });
 
             expect(response.status).toBe(400);
         });
@@ -480,7 +468,7 @@ describe('Server Error Handling - Additional Coverage', () => {
             const { initializeApp } = await import('../../src/notes-api-server.js');
 
             const failingRepository = {
-                init: jest.fn().mockRejectedValue(new Error('Database connection timeout'))
+                init: jest.fn().mockRejectedValue(new Error('Database connection timeout')),
             };
 
             await expect(initializeApp(failingRepository)).rejects.toThrow('Database connection timeout');
@@ -490,10 +478,8 @@ describe('Server Error Handling - Additional Coverage', () => {
         test('should handle concurrent initialization requests', async () => {
             const { initializeApp } = await import('../../src/notes-api-server.js');
 
-            const slowRepository = { 
-                init: jest.fn().mockImplementation(() => 
-                    new Promise(resolve => setTimeout(() => resolve(), 50))
-                )
+            const slowRepository = {
+                init: jest.fn().mockImplementation(() => new Promise((resolve) => setTimeout(() => resolve(), 50))),
             };
 
             // Start multiple initialization attempts concurrently
@@ -511,11 +497,11 @@ describe('Server Error Handling - Additional Coverage', () => {
             const { initializeApp } = await import('../../src/notes-api-server.js');
 
             const timeoutRepository = {
-                init: jest.fn().mockImplementation(() => 
-                    new Promise((_, reject) => 
-                        setTimeout(() => reject(new Error('Connection timeout')), 50)
-                    )
-                )
+                init: jest
+                    .fn()
+                    .mockImplementation(
+                        () => new Promise((_, reject) => setTimeout(() => reject(new Error('Connection timeout')), 50)),
+                    ),
             };
 
             await expect(initializeApp(timeoutRepository)).rejects.toThrow('Connection timeout');
@@ -577,7 +563,7 @@ describe('Server Error Handling - Additional Coverage', () => {
             customError.code = 'CUSTOM_ERROR';
 
             const failingRepository = {
-                init: jest.fn().mockRejectedValue(customError)
+                init: jest.fn().mockRejectedValue(customError),
             };
 
             try {
@@ -597,16 +583,16 @@ describe('Server Error Handling - Additional Coverage', () => {
                 new TypeError('Type error during init'),
                 new ReferenceError('Reference error during init'),
                 new RangeError('Range error during init'),
-                new Error('Generic error during init')
+                new Error('Generic error during init'),
             ];
 
             for (const errorType of errorTypes) {
                 const failingRepository = {
-                    init: jest.fn().mockRejectedValue(errorType)
+                    init: jest.fn().mockRejectedValue(errorType),
                 };
 
                 await expect(initializeApp(failingRepository)).rejects.toThrow(errorType.message);
             }
         });
     });
-}); 
+});

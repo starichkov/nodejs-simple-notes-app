@@ -11,6 +11,9 @@
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
     "test:coverage": "node --experimental-vm-modules node_modules/jest/bin/jest.js --coverage",
     "test:coverage:open": "npm run test:coverage && xdg-open coverage/lcov-report/index.html",
+    "lint": "eslint .",
+    "format": "prettier --write \"src/**/*.js\" \"scripts/**/*.js\" \"__tests__/**/*.js\" \"*.js\"",
+    "format:check": "prettier --check \"src/**/*.js\" \"scripts/**/*.js\" \"__tests__/**/*.js\" \"*.js\"",
     "start": "node src/notes-api-server.js",
     "docs": "jsdoc -c jsdoc.config.json && node scripts/fix-docs-title.js",
     "docs:watch": "jsdoc -c jsdoc.config.json --watch",
@@ -46,10 +49,14 @@
     "nano": "^11.0.5"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.5",
     "@jest/globals": "^30.2.0",
     "@types/jest": "^30.0.0",
+    "eslint": "^9.39.1",
+    "globals": "^16.5.0",
     "jest": "^30.5.2",
     "jsdoc": "^4.0.5",
+    "prettier": "^3.9.10",
     "supertest": "^7.2.2",
     "testcontainers": "^12.2.1"
   },

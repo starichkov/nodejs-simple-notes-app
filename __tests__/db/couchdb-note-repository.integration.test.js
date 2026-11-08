@@ -1,6 +1,6 @@
-import {GenericContainer} from 'testcontainers';
-import {CouchDbNoteRepository} from '../../src/db/couchdb-note-repository.js';
-import {Note} from '../../src/models/note.js';
+import { GenericContainer } from 'testcontainers';
+import { CouchDbNoteRepository } from '../../src/db/couchdb-note-repository.js';
+import { Note } from '../../src/models/note.js';
 
 describe('CouchDbNoteRepository Integration Tests', () => {
     let container;
@@ -14,17 +14,14 @@ describe('CouchDbNoteRepository Integration Tests', () => {
             .withExposedPorts(5984)
             .withEnvironment({
                 COUCHDB_USER: 'admin',
-                COUCHDB_PASSWORD: 'password'
+                COUCHDB_PASSWORD: 'password',
             })
             .start();
 
         // Create repository instance
         const port = container.getMappedPort(5984);
         console.log(`CouchDB container started on port ${port}`);
-        repository = new CouchDbNoteRepository(
-            `http://admin:password@localhost:${port}`,
-            DB_NAME
-        );
+        repository = new CouchDbNoteRepository(`http://admin:password@localhost:${port}`, DB_NAME);
 
         // Initialize the database
         console.log('Initializing database...');
@@ -59,7 +56,7 @@ describe('CouchDbNoteRepository Integration Tests', () => {
             console.log('\nTest: should create and retrieve a note');
             const noteData = {
                 title: 'Test Note',
-                content: 'Test Content'
+                content: 'Test Content',
             };
 
             console.log('Creating note:', noteData);
@@ -84,7 +81,7 @@ describe('CouchDbNoteRepository Integration Tests', () => {
             // Create initial note
             const note = await repository.create({
                 title: 'Original Title',
-                content: 'Original Content'
+                content: 'Original Content',
             });
             console.log('Created initial note:', note);
 
@@ -95,7 +92,7 @@ describe('CouchDbNoteRepository Integration Tests', () => {
 
             const updatedData = {
                 title: 'Updated Title',
-                content: 'Updated Content'
+                content: 'Updated Content',
             };
 
             console.log('Updating note with:', updatedData);
@@ -118,7 +115,7 @@ describe('CouchDbNoteRepository Integration Tests', () => {
             console.log('\nTest: should move note to trash (soft delete)');
             const note = await repository.create({
                 title: 'To Delete',
-                content: 'Will be moved to trash'
+                content: 'Will be moved to trash',
             });
             console.log('Created note to delete:', note);
 
@@ -142,9 +139,9 @@ describe('CouchDbNoteRepository Integration Tests', () => {
         it('should list all notes', async () => {
             console.log('\nTest: should list all notes');
             const notes = [
-                {title: 'Note 1', content: 'Content 1'},
-                {title: 'Note 2', content: 'Content 2'},
-                {title: 'Note 3', content: 'Content 3'}
+                { title: 'Note 1', content: 'Content 1' },
+                { title: 'Note 2', content: 'Content 2' },
+                { title: 'Note 3', content: 'Content 3' },
             ];
 
             // Create notes sequentially
@@ -161,23 +158,21 @@ describe('CouchDbNoteRepository Integration Tests', () => {
             console.log('All notes found:', allNotes);
 
             expect(allNotes).toHaveLength(3);
-            expect(allNotes.every(note => note instanceof Note)).toBe(true);
-            expect(allNotes.map(note => note.title)).toEqual(
-                expect.arrayContaining(notes.map(note => note.title))
-            );
+            expect(allNotes.every((note) => note instanceof Note)).toBe(true);
+            expect(allNotes.map((note) => note.title)).toEqual(expect.arrayContaining(notes.map((note) => note.title)));
         });
     });
 
     describe('Error Handling Coverage', () => {
         it('should handle delete errors with invalid document IDs', async () => {
             const invalidIds = [
-                'invalid/doc/id',  // Invalid characters
-                '_invalid_start',  // Invalid start
+                'invalid/doc/id', // Invalid characters
+                '_invalid_start', // Invalid start
                 'doc$with$special$chars',
                 'very-long-invalid-document-id-that-might-cause-issues-in-couchdb',
-                '',  // Empty string
-                ' ',  // Space
-                'doc with spaces'
+                '', // Empty string
+                ' ', // Space
+                'doc with spaces',
             ];
 
             for (const invalidId of invalidIds) {
@@ -195,7 +190,7 @@ describe('CouchDbNoteRepository Integration Tests', () => {
         it('should handle malformed data in CouchDB operations', async () => {
             const edgeCaseData = [
                 { title: '', content: '' }, // Empty strings
-                { title: '   ', content: '   ' }, // Whitespace only  
+                { title: '   ', content: '   ' }, // Whitespace only
                 { title: 'Title with\nnewlines\ttabs', content: 'Content\rwith\fspecial\vchars' },
                 { title: '🚀💎✨🎯', content: '🔥⭐🎉🚨' }, // Emojis
                 { title: 'null', content: 'undefined' }, // String versions of null/undefined
@@ -233,20 +228,20 @@ describe('CouchDbNoteRepository Integration Tests', () => {
             // Create a note
             const note = await repository.create({
                 title: 'Conflict Test',
-                content: 'Original Content'
+                content: 'Original Content',
             });
 
             // Update the note normally first
             const updatedNote1 = await repository.update(note.id, {
                 title: 'First Update',
-                content: 'First Updated Content'
+                content: 'First Updated Content',
             });
             expect(updatedNote1).toBeTruthy();
 
             // Update again to ensure revision handling works
             const updatedNote2 = await repository.update(note.id, {
                 title: 'Second Update',
-                content: 'Second Updated Content'
+                content: 'Second Updated Content',
             });
             expect(updatedNote2).toBeTruthy();
             expect(updatedNote2.title).toBe('Second Update');
@@ -261,7 +256,7 @@ describe('CouchDbNoteRepository Integration Tests', () => {
             // Create a note first
             const note = await repository.create({
                 title: 'Test for HTTP Errors',
-                content: 'Testing HTTP error scenarios'
+                content: 'Testing HTTP error scenarios',
             });
 
             // Test update with non-404 errors during document retrieval
@@ -275,7 +270,7 @@ describe('CouchDbNoteRepository Integration Tests', () => {
                     const error = new Error('Unauthorized access');
                     error.statusCode = 401;
                     throw error;
-                }
+                },
             };
 
             repository.db = mockDb;
@@ -298,7 +293,7 @@ describe('CouchDbNoteRepository Integration Tests', () => {
             // Create a note
             const note = await repository.create({
                 title: 'Conflict Test Note',
-                content: 'Testing conflict scenarios'
+                content: 'Testing conflict scenarios',
             });
 
             const originalDb = repository.db;
@@ -311,7 +306,7 @@ describe('CouchDbNoteRepository Integration Tests', () => {
                     const error = new Error('Document update conflict');
                     error.statusCode = 409;
                     throw error;
-                }
+                },
             };
 
             repository.db = mockDb;
@@ -333,10 +328,10 @@ describe('CouchDbNoteRepository Integration Tests', () => {
         it('should handle CouchDB-specific invalid document IDs', async () => {
             // CouchDB has specific rules for document IDs
             const couchDbSpecificIds = [
-                'very'.repeat(100),        // Very long ID (may exceed CouchDB limits)
-                'doc\nwith\nnewlines',    // Control characters
-                'doc\twith\ttabs',        // Tab characters
-                'doc\rwith\rcarriage',    // Carriage returns
+                'very'.repeat(100), // Very long ID (may exceed CouchDB limits)
+                'doc\nwith\nnewlines', // Control characters
+                'doc\twith\ttabs', // Tab characters
+                'doc\rwith\rcarriage', // Carriage returns
             ];
 
             for (const invalidId of couchDbSpecificIds) {
@@ -344,7 +339,7 @@ describe('CouchDbNoteRepository Integration Tests', () => {
                 const findResult = await repository.findById(invalidId);
                 expect(findResult).toBeNull(); // Should handle gracefully
 
-                // Test update with edge case ID  
+                // Test update with edge case ID
                 const updateResult = await repository.update(invalidId, { title: 'Test', content: 'Test' });
                 expect(updateResult).toBeNull(); // Should handle gracefully
 
@@ -364,7 +359,7 @@ describe('CouchDbNoteRepository Integration Tests', () => {
                     const error = new Error('View not found');
                     error.statusCode = 404;
                     throw error;
-                }
+                },
             };
 
             repository.db = mockDb;
@@ -385,15 +380,15 @@ describe('CouchDbNoteRepository Integration Tests', () => {
 
             // Mock db.view to return malformed results
             const malformedResults = [
-                { rows: null },               // Null rows
-                { rows: [{ doc: null }] },    // Null documents
-                { rows: [{}] },               // Rows without doc property
+                { rows: null }, // Null rows
+                { rows: [{ doc: null }] }, // Null documents
+                { rows: [{}] }, // Rows without doc property
             ];
 
             for (const malformedResult of malformedResults) {
                 const mockDb = {
                     ...originalDb,
-                    view: async () => malformedResult
+                    view: async () => malformedResult,
                 };
 
                 repository.db = mockDb;
@@ -401,7 +396,7 @@ describe('CouchDbNoteRepository Integration Tests', () => {
                 const notes = await repository.findAll();
                 expect(Array.isArray(notes)).toBe(true);
                 // Should return empty array or filtered results
-                expect(notes.every(note => note !== null)).toBe(true);
+                expect(notes.every((note) => note !== null)).toBe(true);
             }
 
             repository.db = originalDb;
@@ -415,7 +410,7 @@ describe('CouchDbNoteRepository Integration Tests', () => {
 
             const mockDb = {
                 ...originalDb,
-                view: async () => resultWithoutRows
+                view: async () => resultWithoutRows,
             };
 
             repository.db = mockDb;
@@ -437,7 +432,7 @@ describe('CouchDbNoteRepository Integration Tests', () => {
             // Create a note first
             const note = await repository.create({
                 title: 'Delete Error Test',
-                content: 'Testing delete error scenarios'
+                content: 'Testing delete error scenarios',
             });
 
             const originalDb = repository.db;
@@ -449,7 +444,7 @@ describe('CouchDbNoteRepository Integration Tests', () => {
                     const error = new Error('Internal Server Error');
                     error.statusCode = 500;
                     throw error;
-                }
+                },
             };
 
             repository.db = mockDb;
@@ -471,7 +466,7 @@ describe('CouchDbNoteRepository Integration Tests', () => {
         it('should handle document creation with CouchDB edge cases', async () => {
             // Test with edge case data that might cause CouchDB-specific issues
             const couchDbEdgeCases = [
-                { title: JSON.stringify({nested: 'object'}), content: 'JSON in title' },
+                { title: JSON.stringify({ nested: 'object' }), content: 'JSON in title' },
                 { title: 'Unicode: 🔥💎⭐', content: 'Special chars: àáâãäåæçèé' },
                 { title: '\u0000\u0001\u0002', content: 'Control chars' }, // Control characters
             ];
@@ -502,24 +497,25 @@ describe('CouchDbNoteRepository Integration Tests', () => {
             // Create a note
             const note = await repository.create({
                 title: 'Concurrent Test',
-                content: 'Testing concurrent updates'
+                content: 'Testing concurrent updates',
             });
 
             // Perform multiple rapid updates to test revision handling
             const updatePromises = Array.from({ length: 3 }, (_, i) =>
-                repository.update(note.id, {
-                    title: `Update ${i}`,
-                    content: `Content ${i}`
-                }).catch(error => ({ error, index: i }))
+                repository
+                    .update(note.id, {
+                        title: `Update ${i}`,
+                        content: `Content ${i}`,
+                    })
+                    .catch((error) => ({ error, index: i })),
             );
 
             const results = await Promise.allSettled(updatePromises);
 
             // Some should succeed, some might fail due to revision conflicts
-            const successes = results.filter(r => r.status === 'fulfilled' && !r.value.error);
-            const failures = results.filter(r => 
-                r.status === 'rejected' || 
-                (r.status === 'fulfilled' && r.value.error)
+            const successes = results.filter((r) => r.status === 'fulfilled' && !r.value.error);
+            const failures = results.filter(
+                (r) => r.status === 'rejected' || (r.status === 'fulfilled' && r.value.error),
             );
 
             // At least one should succeed
@@ -537,7 +533,7 @@ describe('CouchDbNoteRepository Integration Tests', () => {
             // Create a note
             const note = await repository.create({
                 title: 'Recycle Bin Test',
-                content: 'This note will be moved to recycle bin'
+                content: 'This note will be moved to recycle bin',
             });
 
             // Verify it's active
@@ -554,18 +550,18 @@ describe('CouchDbNoteRepository Integration Tests', () => {
             // Find it in deleted notes
             const deletedNotes = await repository.findDeleted();
             expect(deletedNotes.length).toBeGreaterThan(0);
-            expect(deletedNotes.some(n => n.id === note.id)).toBe(true);
+            expect(deletedNotes.some((n) => n.id === note.id)).toBe(true);
 
             // Verify it's not in active notes
             const activeNotes = await repository.findAll();
-            expect(activeNotes.every(n => n.id !== note.id)).toBe(true);
+            expect(activeNotes.every((n) => n.id !== note.id)).toBe(true);
         });
 
         it('should restore note from recycle bin', async () => {
             // Create a note and move it to recycle bin
             const note = await repository.create({
                 title: 'Restore Test',
-                content: 'This note will be restored from recycle bin'
+                content: 'This note will be restored from recycle bin',
             });
             await repository.moveToRecycleBin(note.id);
 
@@ -583,18 +579,18 @@ describe('CouchDbNoteRepository Integration Tests', () => {
 
             // Verify it's in active notes
             const activeNotes = await repository.findAll();
-            expect(activeNotes.some(n => n.id === note.id)).toBe(true);
+            expect(activeNotes.some((n) => n.id === note.id)).toBe(true);
 
             // Verify it's not in deleted notes
             const deletedNotes = await repository.findDeleted();
-            expect(deletedNotes.every(n => n.id !== note.id)).toBe(true);
+            expect(deletedNotes.every((n) => n.id !== note.id)).toBe(true);
         });
 
         it('should permanently delete a note', async () => {
             // Create a note and move it to recycle bin
             const note = await repository.create({
                 title: 'Permanent Delete Test',
-                content: 'This note will be permanently deleted'
+                content: 'This note will be permanently deleted',
             });
             await repository.moveToRecycleBin(note.id);
 
@@ -611,17 +607,17 @@ describe('CouchDbNoteRepository Integration Tests', () => {
             // Create active notes
             const activeNote1 = await repository.create({
                 title: 'Active Note 1',
-                content: 'This note will stay active'
+                content: 'This note will stay active',
             });
             const activeNote2 = await repository.create({
                 title: 'Active Note 2',
-                content: 'This note will stay active too'
+                content: 'This note will stay active too',
             });
 
             // Create and delete a note
             const deletedNote = await repository.create({
                 title: 'Deleted Note',
-                content: 'This note will be moved to recycle bin'
+                content: 'This note will be moved to recycle bin',
             });
             await repository.moveToRecycleBin(deletedNote.id);
 
@@ -630,14 +626,14 @@ describe('CouchDbNoteRepository Integration Tests', () => {
 
             // Verify all notes are included
             expect(allNotes.length).toBeGreaterThanOrEqual(3);
-            expect(allNotes.some(n => n.id === activeNote1.id)).toBe(true);
-            expect(allNotes.some(n => n.id === activeNote2.id)).toBe(true);
-            expect(allNotes.some(n => n.id === deletedNote.id)).toBe(true);
+            expect(allNotes.some((n) => n.id === activeNote1.id)).toBe(true);
+            expect(allNotes.some((n) => n.id === activeNote2.id)).toBe(true);
+            expect(allNotes.some((n) => n.id === deletedNote.id)).toBe(true);
 
             // Verify active and deleted notes are correctly identified
-            const foundActiveNote1 = allNotes.find(n => n.id === activeNote1.id);
-            const foundActiveNote2 = allNotes.find(n => n.id === activeNote2.id);
-            const foundDeletedNote = allNotes.find(n => n.id === deletedNote.id);
+            const foundActiveNote1 = allNotes.find((n) => n.id === activeNote1.id);
+            const foundActiveNote2 = allNotes.find((n) => n.id === activeNote2.id);
+            const foundDeletedNote = allNotes.find((n) => n.id === deletedNote.id);
 
             expect(foundActiveNote1.deletedAt).toBeNull();
             expect(foundActiveNote2.deletedAt).toBeNull();
@@ -664,7 +660,7 @@ describe('CouchDbNoteRepository Integration Tests', () => {
             // Create a note
             const note = await repository.create({
                 title: 'Legacy Method Test',
-                content: 'Testing legacy methods'
+                content: 'Testing legacy methods',
             });
 
             // Test moveToRecycleBin
@@ -678,22 +674,22 @@ describe('CouchDbNoteRepository Integration Tests', () => {
             // Test findDeleted (should call findDeleted)
             const deletedNotes = await repository.findDeleted();
             expect(deletedNotes.length).toBeGreaterThan(0);
-            expect(deletedNotes.some(n => n.id === note.id)).toBe(true);
+            expect(deletedNotes.some((n) => n.id === note.id)).toBe(true);
         });
 
         it('should count deleted notes correctly', async () => {
             // Create some notes
             const note1 = await repository.create({
                 title: 'Count Test 1',
-                content: 'This note will be deleted'
+                content: 'This note will be deleted',
             });
             const note2 = await repository.create({
                 title: 'Count Test 2',
-                content: 'This note will also be deleted'
+                content: 'This note will also be deleted',
             });
             const note3 = await repository.create({
                 title: 'Count Test 3',
-                content: 'This note will stay active'
+                content: 'This note will stay active',
             });
 
             // Initially, count should be 0
@@ -720,15 +716,15 @@ describe('CouchDbNoteRepository Integration Tests', () => {
             // Create some notes
             const note1 = await repository.create({
                 title: 'Empty Test 1',
-                content: 'This note will be deleted'
+                content: 'This note will be deleted',
             });
             const note2 = await repository.create({
                 title: 'Empty Test 2',
-                content: 'This note will also be deleted'
+                content: 'This note will also be deleted',
             });
             const note3 = await repository.create({
                 title: 'Empty Test 3',
-                content: 'This note will stay active'
+                content: 'This note will stay active',
             });
 
             // Move two notes to recycle bin
@@ -771,15 +767,15 @@ describe('CouchDbNoteRepository Integration Tests', () => {
             // Create some notes
             const note1 = await repository.create({
                 title: 'Restore All Test 1',
-                content: 'This note will be restored from recycle bin'
+                content: 'This note will be restored from recycle bin',
             });
             const note2 = await repository.create({
                 title: 'Restore All Test 2',
-                content: 'This note will also be restored from recycle bin'
+                content: 'This note will also be restored from recycle bin',
             });
             const note3 = await repository.create({
                 title: 'Restore All Test 3',
-                content: 'This note will stay active'
+                content: 'This note will stay active',
             });
 
             // Move two notes to recycle bin
@@ -797,9 +793,9 @@ describe('CouchDbNoteRepository Integration Tests', () => {
             // Verify all notes are now active
             const activeNotes = await repository.findAll();
             expect(activeNotes.length).toBe(3);
-            expect(activeNotes.some(n => n.id === note1.id)).toBe(true);
-            expect(activeNotes.some(n => n.id === note2.id)).toBe(true);
-            expect(activeNotes.some(n => n.id === note3.id)).toBe(true);
+            expect(activeNotes.some((n) => n.id === note1.id)).toBe(true);
+            expect(activeNotes.some((n) => n.id === note2.id)).toBe(true);
+            expect(activeNotes.some((n) => n.id === note3.id)).toBe(true);
 
             // Verify recycle bin is empty
             deletedNotes = await repository.findDeleted();

@@ -1,5 +1,12 @@
 import { jest } from '@jest/globals';
-import { app, startServer, gracefulShutdown, initializeApp, createNoteRepository, NotesServer } from '../../src/notes-api-server.js';
+import {
+    app,
+    startServer,
+    gracefulShutdown,
+    initializeApp,
+    createNoteRepository,
+    NotesServer,
+} from '../../src/notes-api-server.js';
 import request from 'supertest';
 
 // Mock process methods
@@ -34,7 +41,7 @@ beforeEach(() => {
     mockServer = {
         listen: jest.fn(),
         close: jest.fn(),
-        address: jest.fn(() => ({ address: '0.0.0.0', port: 3000 }))
+        address: jest.fn(() => ({ address: '0.0.0.0', port: 3000 })),
     };
 });
 
@@ -60,7 +67,7 @@ class MockRepository {
     async init() {
         return Promise.resolve();
     }
-    
+
     async findAll() {
         return [];
     }
@@ -106,11 +113,7 @@ describe('Server Lifecycle Tests', () => {
 
             const server = notesServer.startServer();
 
-            expect(mockListen).toHaveBeenCalledWith(
-                expect.any(Number),
-                expect.any(String),
-                expect.any(Function)
-            );
+            expect(mockListen).toHaveBeenCalledWith(expect.any(Number), expect.any(String), expect.any(Function));
             expect(server).toBe(mockServer);
             expect(notesServer.server).toBe(mockServer);
 
@@ -168,7 +171,7 @@ describe('Server Lifecycle Tests', () => {
 
             // Mock repository
             const mockRepository = {
-                init: jest.fn().mockResolvedValue(undefined)
+                init: jest.fn().mockResolvedValue(undefined),
             };
 
             const result = await notesServer.initializeApp(mockRepository);
@@ -183,10 +186,9 @@ describe('Server Lifecycle Tests', () => {
 
             // Mock createNoteRepository method
             const mockRepository = {
-                init: jest.fn().mockResolvedValue(undefined)
+                init: jest.fn().mockResolvedValue(undefined),
             };
-            const createRepoSpy = jest.spyOn(notesServer, 'createNoteRepository')
-                .mockReturnValue(mockRepository);
+            const createRepoSpy = jest.spyOn(notesServer, 'createNoteRepository').mockReturnValue(mockRepository);
 
             const result = await notesServer.initializeApp();
 
@@ -228,14 +230,14 @@ describe('NotesServer Lifecycle Tests', () => {
         test('should initialize app with custom repository', async () => {
             const mockRepo = new MockRepository();
             const { app, repository } = await server.initializeApp(mockRepo);
-            
+
             expect(app).toBeDefined();
             expect(repository).toBe(mockRepo);
         });
 
         test('should handle initialization errors gracefully', async () => {
             const failingRepo = {
-                init: jest.fn().mockRejectedValue(new Error('Database connection failed'))
+                init: jest.fn().mockRejectedValue(new Error('Database connection failed')),
             };
 
             await expect(server.initializeApp(failingRepo)).rejects.toThrow('Database connection failed');
@@ -255,15 +257,15 @@ describe('NotesServer Lifecycle Tests', () => {
                     if (callback) {
                         setTimeout(() => callback(), 10);
                     }
-                })
+                }),
             };
-            
+
             server.server = mockServer;
             server.gracefulShutdown();
-            
+
             // Verify server.close was called
             expect(mockServer.close).toHaveBeenCalled();
-            
+
             // Wait for async completion
             setTimeout(() => {
                 expect(exitCode).toBe(0);
@@ -279,7 +281,7 @@ describe('NotesServer Lifecycle Tests', () => {
         test('should set up all middleware correctly', async () => {
             const mockRepo = new MockRepository();
             const { app } = await server.initializeApp(mockRepo);
-            
+
             // Test that app has the expected middleware by testing a simple request
             const response = await request(app).get('/health');
             expect(response.status).toBe(200);
@@ -289,12 +291,12 @@ describe('NotesServer Lifecycle Tests', () => {
         test('should handle JSON parsing errors', async () => {
             const mockRepo = new MockRepository();
             const { app } = await server.initializeApp(mockRepo);
-            
+
             const response = await request(app)
                 .post('/api/notes')
                 .set('Content-Type', 'application/json')
                 .send('invalid json');
-                
+
             expect(response.status).toBe(400);
             expect(response.body.error).toBe('Invalid JSON');
         });
@@ -302,26 +304,26 @@ describe('NotesServer Lifecycle Tests', () => {
         test('should handle 404 for undefined routes', async () => {
             const mockRepo = new MockRepository();
             const { app } = await server.initializeApp(mockRepo);
-            
+
             const response = await request(app).get('/nonexistent-route');
-                
+
             expect(response.status).toBe(404);
             expect(response.body.error).toBe('Not found');
         });
 
         test('should handle internal server errors', async () => {
             const mockRepo = new MockRepository();
-            
+
             // Add the test route before initializing the app to ensure it's before the 404 handler
             server.app.get('/test-error', (req, res, next) => {
                 const error = new Error('Test error');
                 next(error);
             });
-            
+
             const { app } = await server.initializeApp(mockRepo);
-            
+
             const response = await request(app).get('/test-error');
-                
+
             expect(response.status).toBe(500);
             expect(response.body.error).toBe('Internal server error');
         });
@@ -330,19 +332,19 @@ describe('NotesServer Lifecycle Tests', () => {
     describe('Server Startup', () => {
         test('should start server on specified port', async () => {
             const mockRepo = new MockRepository();
-            
+
             await server.initializeApp(mockRepo);
-            
+
             // Mock app.listen to avoid actually starting a server
             const mockListen = jest.spyOn(server.app, 'listen').mockImplementation((port, host, callback) => {
                 if (callback) callback();
                 return mockServer;
             });
-            
+
             const httpServer = server.startServer();
             expect(httpServer).toBeDefined();
             expect(mockListen).toHaveBeenCalled();
-            
+
             mockListen.mockRestore();
         });
     });
@@ -361,16 +363,16 @@ describe('Direct Execution Path', () => {
         // We can't directly test the import.meta.url check, but we can test
         // the error handling within that block
         const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
-        
+
         // Mock a scenario where initializeApp fails
         const originalCreateNoteRepository = NotesServer.prototype.createNoteRepository;
         NotesServer.prototype.createNoteRepository = jest.fn().mockImplementation(() => {
             throw new Error('Mock initialization failure');
         });
-        
+
         // This simulates what would happen in the direct execution block
         const notesServer = new NotesServer();
-        
+
         try {
             await notesServer.initializeApp();
             // Should not reach here
@@ -379,11 +381,11 @@ describe('Direct Execution Path', () => {
             // This simulates the .catch() block in the actual direct execution code
             console.error('Application startup failed:', error);
             process.exit(1);
-            
+
             expect(error.message).toBe('Mock initialization failure');
             expect(exitCode).toBe(1);
         }
-        
+
         // Restore original method
         NotesServer.prototype.createNoteRepository = originalCreateNoteRepository;
         consoleErrorSpy.mockRestore();

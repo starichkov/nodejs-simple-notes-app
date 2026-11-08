@@ -3,10 +3,10 @@ import helmet from 'helmet';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import path from 'path';
-import {fileURLToPath} from 'url';
-import {CouchDbNoteRepository} from './db/couchdb-note-repository.js';
-import {MongoDbNoteRepository} from './db/mongodb-note-repository.js';
-import {createNotesRouter} from './routes/notes-routes.js';
+import { fileURLToPath } from 'url';
+import { CouchDbNoteRepository } from './db/couchdb-note-repository.js';
+import { MongoDbNoteRepository } from './db/mongodb-note-repository.js';
+import { createNotesRouter } from './routes/notes-routes.js';
 import { createLogger } from './logger.js';
 
 // Load environment variables
@@ -35,7 +35,7 @@ const log = createLogger('NotesServer');
  * NotesServer class encapsulates server lifecycle and eliminates module-level state.
  * Provides a clean, testable interface for the Notes API server with support for
  * both CouchDB and MongoDB backends.
- * 
+ *
  * @class
  * @example
  * const server = new NotesServer();
@@ -68,13 +68,13 @@ export class NotesServer {
     /**
      * Create the appropriate repository based on the DB_VENDOR environment variable.
      * Supports both CouchDB and MongoDB implementations.
-     * 
+     *
      * @returns {CouchDbNoteRepository|MongoDbNoteRepository} The configured repository instance
      * @throws {Error} When an unsupported database vendor is specified
      * @example
      * // With DB_VENDOR='mongodb'
      * const repo = server.createNoteRepository(); // Returns MongoDbNoteRepository
-     * 
+     *
      * // With DB_VENDOR='couchdb' (default)
      * const repo = server.createNoteRepository(); // Returns CouchDbNoteRepository
      */
@@ -93,13 +93,13 @@ export class NotesServer {
     /**
      * Graceful shutdown function that handles cleanup and ensures all connections are closed properly.
      * Implements a timeout mechanism to force shutdown if graceful shutdown takes too long.
-     * 
+     *
      * @param {number} [timeout=10000] - Timeout in milliseconds before forcing shutdown
      * @returns {void}
      * @example
      * // Manual shutdown
      * server.gracefulShutdown();
-     * 
+     *
      * // With custom timeout
      * server.gracefulShutdown(5000); // 5 second timeout
      */
@@ -110,9 +110,11 @@ export class NotesServer {
             const forceShutdownTimeout = setTimeout(
                 // istanbul ignore next: timing-based forced shutdown path is CLI-only and hard to simulate deterministically
                 () => {
-                log.error('Could not close connections in time, forcefully shutting down');
-                process.exit(1);
-            }, timeout);
+                    log.error('Could not close connections in time, forcefully shutting down');
+                    process.exit(1);
+                },
+                timeout,
+            );
 
             this.server.close(() => {
                 log.info('HTTP server closed');
@@ -130,14 +132,14 @@ export class NotesServer {
      * Initialize the Express application with middleware, routes, and error handling.
      * Sets up the complete application stack including security, CORS, static files,
      * and API routes.
-     * 
+     *
      * @param {?NoteRepository} [noteRepository=null] - Optional repository instance for dependency injection (useful for testing)
      * @returns {Promise<{app: express.Application, repository: NoteRepository}>} Initialized app and repository
      * @throws {Error} When repository initialization fails
      * @example
      * // Default initialization
      * const { app, repository } = await server.initializeApp();
-     * 
+     *
      * // With custom repository (for testing)
      * const mockRepo = new MockNoteRepository();
      * const { app, repository } = await server.initializeApp(mockRepo);
@@ -172,7 +174,7 @@ export class NotesServer {
 
             // Add a simple health check endpoint
             this.app.get('/health', (req, res) => {
-                res.status(200).json({status: 'ok'});
+                res.status(200).json({ status: 'ok' });
             });
 
             // Serve the index.html file for the root route
@@ -195,7 +197,7 @@ export class NotesServer {
                 }
 
                 // Default to 500 for other errors
-                res.status(500).json({error: 'Internal server error'});
+                res.status(500).json({ error: 'Internal server error' });
             });
 
             return { app: this.app, repository };
@@ -208,7 +210,7 @@ export class NotesServer {
     /**
      * Start the HTTP server and set up signal handlers for graceful shutdown.
      * The server will listen on the configured HOST and PORT.
-     * 
+     *
      * @returns {http.Server} The started HTTP server instance
      * @throws {Error} When server fails to start
      * @example

@@ -1,6 +1,6 @@
-import {GenericContainer} from 'testcontainers';
-import {MongoDbNoteRepository} from '../../src/db/mongodb-note-repository.js';
-import {Note} from '../../src/models/note.js';
+import { GenericContainer } from 'testcontainers';
+import { MongoDbNoteRepository } from '../../src/db/mongodb-note-repository.js';
+import { Note } from '../../src/models/note.js';
 import mongoose from 'mongoose';
 
 describe('MongoDbNoteRepository Integration Tests', () => {
@@ -15,7 +15,7 @@ describe('MongoDbNoteRepository Integration Tests', () => {
             .withExposedPorts(27017)
             .withEnvironment({
                 MONGO_INITDB_ROOT_USERNAME: 'admin',
-                MONGO_INITDB_ROOT_PASSWORD: 'password'
+                MONGO_INITDB_ROOT_PASSWORD: 'password',
             })
             .start();
 
@@ -24,10 +24,7 @@ describe('MongoDbNoteRepository Integration Tests', () => {
         console.log(`MongoDB container started on port ${port}`);
         // 2. Construct a URL with authSource but WITHOUT the database name in the path
         // 3. Instantiate and initialize your repository
-        repository = new MongoDbNoteRepository(
-            `mongodb://admin:password@localhost:${port}/?authSource=admin`,
-            DB_NAME
-        );
+        repository = new MongoDbNoteRepository(`mongodb://admin:password@localhost:${port}/?authSource=admin`, DB_NAME);
 
         // Initialize the database
         console.log('Initializing database...');
@@ -66,7 +63,7 @@ describe('MongoDbNoteRepository Integration Tests', () => {
             console.log('\nTest: should create and retrieve a note');
             const noteData = {
                 title: 'Test Note',
-                content: 'Test Content'
+                content: 'Test Content',
             };
 
             console.log('Creating note:', noteData);
@@ -91,7 +88,7 @@ describe('MongoDbNoteRepository Integration Tests', () => {
             // Create initial note
             const note = await repository.create({
                 title: 'Original Title',
-                content: 'Original Content'
+                content: 'Original Content',
             });
             console.log('Created initial note:', note);
 
@@ -102,7 +99,7 @@ describe('MongoDbNoteRepository Integration Tests', () => {
 
             const updatedData = {
                 title: 'Updated Title',
-                content: 'Updated Content'
+                content: 'Updated Content',
             };
 
             console.log('Updating note with:', updatedData);
@@ -125,7 +122,7 @@ describe('MongoDbNoteRepository Integration Tests', () => {
             console.log('\nTest: should move note to trash (soft delete)');
             const note = await repository.create({
                 title: 'To Delete',
-                content: 'Will be moved to trash'
+                content: 'Will be moved to trash',
             });
             console.log('Created note to delete:', note);
 
@@ -149,9 +146,9 @@ describe('MongoDbNoteRepository Integration Tests', () => {
         it('should list all notes', async () => {
             console.log('\nTest: should list all notes');
             const notes = [
-                {title: 'Note 1', content: 'Content 1'},
-                {title: 'Note 2', content: 'Content 2'},
-                {title: 'Note 3', content: 'Content 3'}
+                { title: 'Note 1', content: 'Content 1' },
+                { title: 'Note 2', content: 'Content 2' },
+                { title: 'Note 3', content: 'Content 3' },
             ];
 
             // Create notes sequentially
@@ -168,10 +165,8 @@ describe('MongoDbNoteRepository Integration Tests', () => {
             console.log('All notes found:', allNotes);
 
             expect(allNotes).toHaveLength(3);
-            expect(allNotes.every(note => note instanceof Note)).toBe(true);
-            expect(allNotes.map(note => note.title)).toEqual(
-                expect.arrayContaining(notes.map(note => note.title))
-            );
+            expect(allNotes.every((note) => note instanceof Note)).toBe(true);
+            expect(allNotes.map((note) => note.title)).toEqual(expect.arrayContaining(notes.map((note) => note.title)));
         });
     });
 
@@ -200,7 +195,7 @@ describe('MongoDbNoteRepository Integration Tests', () => {
                 'not-hex-chars-xyz',
                 'too-long-object-id-format-123456789',
                 '',
-                '000000000000000000000000' // Valid format but likely non-existent
+                '000000000000000000000000', // Valid format but likely non-existent
             ];
 
             const noteData = { title: 'Test', content: 'Test Content' };
@@ -218,7 +213,7 @@ describe('MongoDbNoteRepository Integration Tests', () => {
                 '12345abcde',
                 'xxxxxxxxxxxxxxxxxxxxxxxxx',
                 'short-id',
-                'special!@#$%^&*()characters'
+                'special!@#$%^&*()characters',
             ];
 
             for (const invalidId of invalidIds) {
@@ -232,14 +227,14 @@ describe('MongoDbNoteRepository Integration Tests', () => {
             // Create a valid note first
             const note = await repository.create({
                 title: 'Test Note',
-                content: 'Test Content'
+                content: 'Test Content',
             });
 
             // Test with extremely long content that might cause issues
             const veryLongContent = 'x'.repeat(1000000); // 1MB of 'x'
             const updateResult = await repository.update(note.id, {
                 title: 'Updated Title',
-                content: veryLongContent
+                content: veryLongContent,
             });
 
             // Should handle large content gracefully
@@ -298,7 +293,7 @@ describe('MongoDbNoteRepository Integration Tests', () => {
             // Create a note
             const note = await repository.create({
                 title: 'Recycle Bin Test',
-                content: 'This note will be moved to recycle bin'
+                content: 'This note will be moved to recycle bin',
             });
 
             // Verify it's active
@@ -315,26 +310,26 @@ describe('MongoDbNoteRepository Integration Tests', () => {
             // Find it in deleted notes
             const deletedNotes = await repository.findDeleted();
             expect(deletedNotes.length).toBeGreaterThan(0);
-            expect(deletedNotes.some(n => n.id === note.id)).toBe(true);
+            expect(deletedNotes.some((n) => n.id === note.id)).toBe(true);
 
             // Verify it's not in active notes
             const activeNotes = await repository.findAll();
-            expect(activeNotes.every(n => n.id !== note.id)).toBe(true);
+            expect(activeNotes.every((n) => n.id !== note.id)).toBe(true);
         });
 
         it('should restore all notes from recycle bin', async () => {
             // Create some notes
             const note1 = await repository.create({
                 title: 'Restore All Test 1',
-                content: 'This note will be restored from recycle bin'
+                content: 'This note will be restored from recycle bin',
             });
             const note2 = await repository.create({
                 title: 'Restore All Test 2',
-                content: 'This note will also be restored from recycle bin'
+                content: 'This note will also be restored from recycle bin',
             });
             const note3 = await repository.create({
                 title: 'Restore All Test 3',
-                content: 'This note will stay active'
+                content: 'This note will stay active',
             });
 
             // Move two notes to recycle bin
@@ -352,9 +347,9 @@ describe('MongoDbNoteRepository Integration Tests', () => {
             // Verify all notes are now active
             const activeNotes = await repository.findAll();
             expect(activeNotes.length).toBe(3);
-            expect(activeNotes.some(n => n.id === note1.id)).toBe(true);
-            expect(activeNotes.some(n => n.id === note2.id)).toBe(true);
-            expect(activeNotes.some(n => n.id === note3.id)).toBe(true);
+            expect(activeNotes.some((n) => n.id === note1.id)).toBe(true);
+            expect(activeNotes.some((n) => n.id === note2.id)).toBe(true);
+            expect(activeNotes.some((n) => n.id === note3.id)).toBe(true);
 
             // Verify recycle bin is empty
             deletedNotes = await repository.findDeleted();
@@ -365,7 +360,7 @@ describe('MongoDbNoteRepository Integration Tests', () => {
             // Create a note and move it to recycle bin
             const note = await repository.create({
                 title: 'Restore Test',
-                content: 'This note will be restored from recycle bin'
+                content: 'This note will be restored from recycle bin',
             });
             await repository.moveToRecycleBin(note.id);
 
@@ -383,18 +378,18 @@ describe('MongoDbNoteRepository Integration Tests', () => {
 
             // Verify it's in active notes
             const activeNotes = await repository.findAll();
-            expect(activeNotes.some(n => n.id === note.id)).toBe(true);
+            expect(activeNotes.some((n) => n.id === note.id)).toBe(true);
 
             // Verify it's not in deleted notes
             const deletedNotes = await repository.findDeleted();
-            expect(deletedNotes.every(n => n.id !== note.id)).toBe(true);
+            expect(deletedNotes.every((n) => n.id !== note.id)).toBe(true);
         });
 
         it('should permanently delete a note', async () => {
             // Create a note and move it to recycle bin
             const note = await repository.create({
                 title: 'Permanent Delete Test',
-                content: 'This note will be permanently deleted'
+                content: 'This note will be permanently deleted',
             });
             await repository.moveToRecycleBin(note.id);
 
@@ -411,17 +406,17 @@ describe('MongoDbNoteRepository Integration Tests', () => {
             // Create active notes
             const activeNote1 = await repository.create({
                 title: 'Active Note 1',
-                content: 'This note will stay active'
+                content: 'This note will stay active',
             });
             const activeNote2 = await repository.create({
                 title: 'Active Note 2',
-                content: 'This note will stay active too'
+                content: 'This note will stay active too',
             });
 
             // Create and delete a note
             const deletedNote = await repository.create({
                 title: 'Deleted Note',
-                content: 'This note will be moved to recycle bin'
+                content: 'This note will be moved to recycle bin',
             });
             await repository.moveToRecycleBin(deletedNote.id);
 
@@ -430,14 +425,14 @@ describe('MongoDbNoteRepository Integration Tests', () => {
 
             // Verify all notes are included
             expect(allNotes.length).toBeGreaterThanOrEqual(3);
-            expect(allNotes.some(n => n.id === activeNote1.id)).toBe(true);
-            expect(allNotes.some(n => n.id === activeNote2.id)).toBe(true);
-            expect(allNotes.some(n => n.id === deletedNote.id)).toBe(true);
+            expect(allNotes.some((n) => n.id === activeNote1.id)).toBe(true);
+            expect(allNotes.some((n) => n.id === activeNote2.id)).toBe(true);
+            expect(allNotes.some((n) => n.id === deletedNote.id)).toBe(true);
 
             // Verify active and deleted notes are correctly identified
-            const foundActiveNote1 = allNotes.find(n => n.id === activeNote1.id);
-            const foundActiveNote2 = allNotes.find(n => n.id === activeNote2.id);
-            const foundDeletedNote = allNotes.find(n => n.id === deletedNote.id);
+            const foundActiveNote1 = allNotes.find((n) => n.id === activeNote1.id);
+            const foundActiveNote2 = allNotes.find((n) => n.id === activeNote2.id);
+            const foundDeletedNote = allNotes.find((n) => n.id === deletedNote.id);
 
             expect(foundActiveNote1.deletedAt).toBeNull();
             expect(foundActiveNote2.deletedAt).toBeNull();
@@ -464,15 +459,15 @@ describe('MongoDbNoteRepository Integration Tests', () => {
             // Create some notes
             const note1 = await repository.create({
                 title: 'Count Test 1',
-                content: 'This note will be deleted'
+                content: 'This note will be deleted',
             });
             const note2 = await repository.create({
                 title: 'Count Test 2',
-                content: 'This note will also be deleted'
+                content: 'This note will also be deleted',
             });
             const note3 = await repository.create({
                 title: 'Count Test 3',
-                content: 'This note will stay active'
+                content: 'This note will stay active',
             });
 
             // Initially, count should be 0
@@ -499,15 +494,15 @@ describe('MongoDbNoteRepository Integration Tests', () => {
             // Create some notes
             const note1 = await repository.create({
                 title: 'Empty Test 1',
-                content: 'This note will be deleted'
+                content: 'This note will be deleted',
             });
             const note2 = await repository.create({
                 title: 'Empty Test 2',
-                content: 'This note will also be deleted'
+                content: 'This note will also be deleted',
             });
             const note3 = await repository.create({
                 title: 'Empty Test 3',
-                content: 'This note will stay active'
+                content: 'This note will stay active',
             });
 
             // Move two notes to recycle bin

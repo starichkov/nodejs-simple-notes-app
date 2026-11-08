@@ -8,7 +8,7 @@ jest.mock('nano', () => {
         get: jest.fn(),
         insert: jest.fn(),
         view: jest.fn(),
-        destroy: jest.fn()
+        destroy: jest.fn(),
     };
 
     const mockClient = {
@@ -16,7 +16,7 @@ jest.mock('nano', () => {
             list: jest.fn().mockResolvedValue([]),
             create: jest.fn().mockResolvedValue({ ok: true }),
         },
-        use: jest.fn().mockReturnValue(mockDb)
+        use: jest.fn().mockReturnValue(mockDb),
     };
 
     return jest.fn(() => mockClient);
@@ -39,7 +39,7 @@ describe('CouchDbNoteRepository Error Handling Tests', () => {
             get: jest.fn(),
             insert: jest.fn(),
             view: jest.fn(),
-            destroy: jest.fn()
+            destroy: jest.fn(),
         };
 
         const mockClient = {
@@ -47,7 +47,7 @@ describe('CouchDbNoteRepository Error Handling Tests', () => {
                 list: jest.fn(),
                 create: jest.fn(),
             },
-            use: jest.fn().mockReturnValue(mockDb)
+            use: jest.fn().mockReturnValue(mockDb),
         };
 
         // Create the repository with the mocked client
@@ -148,15 +148,11 @@ describe('CouchDbNoteRepository Error Handling Tests', () => {
                 content: 'Valid Content',
                 deletedAt: null,
                 createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString()
+                updatedAt: new Date().toISOString(),
             };
 
             const result = repository._mapResult({
-                rows: [
-                    { doc: validDoc },
-                    { doc: null },
-                    {}
-                ]
+                rows: [{ doc: validDoc }, { doc: null }, {}],
             });
 
             expect(result.length).toBe(1);
@@ -171,7 +167,7 @@ describe('CouchDbNoteRepository Error Handling Tests', () => {
                 view: jest.fn().mockRejectedValue(new Error('Connection failed')),
                 get: jest.fn().mockRejectedValue(new Error('Connection failed')),
                 insert: jest.fn().mockRejectedValue(new Error('Connection failed')),
-                destroy: jest.fn().mockRejectedValue(new Error('Connection failed'))
+                destroy: jest.fn().mockRejectedValue(new Error('Connection failed')),
             };
         });
 
@@ -212,47 +208,47 @@ describe('CouchDbNoteRepository Error Scenarios', () => {
             const mockClient = {
                 db: {
                     list: jest.fn().mockResolvedValue([]), // DB doesn't exist
-                    create: jest.fn().mockRejectedValue(new Error('Database creation failed'))
-                }
+                    create: jest.fn().mockRejectedValue(new Error('Database creation failed')),
+                },
             };
-            
+
             repository.client = mockClient;
-            
+
             await expect(repository.init()).rejects.toThrow('Database creation failed');
         });
 
         test('should handle design document creation errors during init', async () => {
             const mockDb = {
                 get: jest.fn().mockRejectedValue({ statusCode: 404 }),
-                insert: jest.fn().mockRejectedValue(new Error('Design document creation failed'))
+                insert: jest.fn().mockRejectedValue(new Error('Design document creation failed')),
             };
-            
+
             const mockClient = {
                 db: {
                     list: jest.fn().mockResolvedValue([testDbName]),
                 },
-                use: jest.fn().mockReturnValue(mockDb)
+                use: jest.fn().mockReturnValue(mockDb),
             };
-            
+
             repository.client = mockClient;
-            
+
             await expect(repository.init()).rejects.toThrow('Design document creation failed');
         });
 
         test('should handle unexpected errors during design document retrieval', async () => {
             const mockDb = {
-                get: jest.fn().mockRejectedValue(new Error('Unexpected database error'))
+                get: jest.fn().mockRejectedValue(new Error('Unexpected database error')),
             };
-            
+
             const mockClient = {
                 db: {
                     list: jest.fn().mockResolvedValue([testDbName]),
                 },
-                use: jest.fn().mockReturnValue(mockDb)
+                use: jest.fn().mockReturnValue(mockDb),
             };
-            
+
             repository.client = mockClient;
-            
+
             await expect(repository.init()).rejects.toThrow('Unexpected database error');
         });
 
@@ -261,25 +257,25 @@ describe('CouchDbNoteRepository Error Scenarios', () => {
                 _id: '_design/notes',
                 _rev: '1-abc123',
                 views: {
-                    all: { map: "function(doc) { emit(doc._id, null); }" }
+                    all: { map: 'function(doc) { emit(doc._id, null); }' },
                     // Missing 'active' and 'deleted' views
-                }
+                },
             };
-            
+
             const mockDb = {
                 get: jest.fn().mockResolvedValue(existingDoc),
-                insert: jest.fn().mockRejectedValue(new Error('Update failed'))
+                insert: jest.fn().mockRejectedValue(new Error('Update failed')),
             };
-            
+
             const mockClient = {
                 db: {
                     list: jest.fn().mockResolvedValue([testDbName]),
                 },
-                use: jest.fn().mockReturnValue(mockDb)
+                use: jest.fn().mockReturnValue(mockDb),
             };
-            
+
             repository.client = mockClient;
-            
+
             await expect(repository.init()).rejects.toThrow('Update failed');
         });
     });
@@ -287,41 +283,41 @@ describe('CouchDbNoteRepository Error Scenarios', () => {
     describe('Query Error Scenarios', () => {
         test('should handle view query errors in findAll', async () => {
             const mockDb = {
-                view: jest.fn().mockRejectedValue(new Error('View query failed'))
+                view: jest.fn().mockRejectedValue(new Error('View query failed')),
             };
-            
+
             repository.db = mockDb;
-            
+
             await expect(repository.findAll()).rejects.toThrow('View query failed');
         });
 
         test('should handle view query errors in findDeleted', async () => {
             const mockDb = {
-                view: jest.fn().mockRejectedValue(new Error('Deleted view query failed'))
+                view: jest.fn().mockRejectedValue(new Error('Deleted view query failed')),
             };
-            
+
             repository.db = mockDb;
-            
+
             await expect(repository.findDeleted()).rejects.toThrow('Deleted view query failed');
         });
 
         test('should handle view query errors in findAllIncludingDeleted', async () => {
             const mockDb = {
-                view: jest.fn().mockRejectedValue(new Error('All view query failed'))
+                view: jest.fn().mockRejectedValue(new Error('All view query failed')),
             };
-            
+
             repository.db = mockDb;
-            
+
             await expect(repository.findAllIncludingDeleted()).rejects.toThrow('All view query failed');
         });
 
         test('should handle view query errors in countDeleted', async () => {
             const mockDb = {
-                view: jest.fn().mockRejectedValue(new Error('Count view query failed'))
+                view: jest.fn().mockRejectedValue(new Error('Count view query failed')),
             };
-            
+
             repository.db = mockDb;
-            
+
             await expect(repository.countDeleted()).rejects.toThrow('Count view query failed');
         });
     });
@@ -329,21 +325,21 @@ describe('CouchDbNoteRepository Error Scenarios', () => {
     describe('Document Operation Error Scenarios', () => {
         test('should handle document retrieval errors in findById', async () => {
             const mockDb = {
-                get: jest.fn().mockRejectedValue(new Error('Document retrieval failed'))
+                get: jest.fn().mockRejectedValue(new Error('Document retrieval failed')),
             };
-            
+
             repository.db = mockDb;
-            
+
             await expect(repository.findById('test-id')).rejects.toThrow('Document retrieval failed');
         });
 
         test('should handle document creation errors in create', async () => {
             const mockDb = {
-                insert: jest.fn().mockRejectedValue(new Error('Document creation failed'))
+                insert: jest.fn().mockRejectedValue(new Error('Document creation failed')),
             };
-            
+
             repository.db = mockDb;
-            
+
             const note = { title: 'Test Note', content: 'Test content' };
             await expect(repository.create(note)).rejects.toThrow('Document creation failed');
         });
@@ -355,16 +351,16 @@ describe('CouchDbNoteRepository Error Scenarios', () => {
                 title: 'Old Title',
                 content: 'Old content',
                 createdAt: new Date().toISOString(),
-                deletedAt: null
+                deletedAt: null,
             };
-            
+
             const mockDb = {
                 get: jest.fn().mockResolvedValue(existingDoc),
-                insert: jest.fn().mockRejectedValue(new Error('Document update failed'))
+                insert: jest.fn().mockRejectedValue(new Error('Document update failed')),
             };
-            
+
             repository.db = mockDb;
-            
+
             const updatedNote = { title: 'New Title', content: 'New content' };
             await expect(repository.update('test-id', updatedNote)).rejects.toThrow('Document update failed');
         });
@@ -376,21 +372,23 @@ describe('CouchDbNoteRepository Error Scenarios', () => {
                 title: 'Old Title',
                 content: 'Old content',
                 createdAt: new Date().toISOString(),
-                deletedAt: null
+                deletedAt: null,
             };
-            
+
             const conflictError = new Error('Document conflict');
             conflictError.statusCode = 409;
-            
+
             const mockDb = {
                 get: jest.fn().mockResolvedValue(existingDoc),
-                insert: jest.fn().mockRejectedValue(conflictError)
+                insert: jest.fn().mockRejectedValue(conflictError),
             };
-            
+
             repository.db = mockDb;
-            
+
             const updatedNote = { title: 'New Title', content: 'New content' };
-            await expect(repository.update('test-id', updatedNote)).rejects.toThrow('Document was modified concurrently. Please try again.');
+            await expect(repository.update('test-id', updatedNote)).rejects.toThrow(
+                'Document was modified concurrently. Please try again.',
+            );
         });
 
         test('should handle moveToRecycleBin errors during document update', async () => {
@@ -400,16 +398,16 @@ describe('CouchDbNoteRepository Error Scenarios', () => {
                 title: 'Test Title',
                 content: 'Test content',
                 createdAt: new Date().toISOString(),
-                deletedAt: null
+                deletedAt: null,
             };
-            
+
             const mockDb = {
                 get: jest.fn().mockResolvedValue(existingDoc),
-                insert: jest.fn().mockRejectedValue(new Error('Move to recycle bin failed'))
+                insert: jest.fn().mockRejectedValue(new Error('Move to recycle bin failed')),
             };
-            
+
             repository.db = mockDb;
-            
+
             await expect(repository.moveToRecycleBin('test-id')).rejects.toThrow('Move to recycle bin failed');
         });
 
@@ -420,16 +418,16 @@ describe('CouchDbNoteRepository Error Scenarios', () => {
                 title: 'Test Title',
                 content: 'Test content',
                 createdAt: new Date().toISOString(),
-                deletedAt: new Date().toISOString()
+                deletedAt: new Date().toISOString(),
             };
-            
+
             const mockDb = {
                 get: jest.fn().mockResolvedValue(existingDoc),
-                insert: jest.fn().mockRejectedValue(new Error('Restore failed'))
+                insert: jest.fn().mockRejectedValue(new Error('Restore failed')),
             };
-            
+
             repository.db = mockDb;
-            
+
             await expect(repository.restore('test-id')).rejects.toThrow('Restore failed');
         });
 
@@ -438,16 +436,16 @@ describe('CouchDbNoteRepository Error Scenarios', () => {
                 _id: 'test-id',
                 _rev: '1-abc123',
                 title: 'Test Title',
-                content: 'Test content'
+                content: 'Test content',
             };
-            
+
             const mockDb = {
                 get: jest.fn().mockResolvedValue(existingDoc),
-                destroy: jest.fn().mockRejectedValue(new Error('Permanent deletion failed'))
+                destroy: jest.fn().mockRejectedValue(new Error('Permanent deletion failed')),
             };
-            
+
             repository.db = mockDb;
-            
+
             await expect(repository.permanentDelete('test-id')).rejects.toThrow('Permanent deletion failed');
         });
 
@@ -455,14 +453,15 @@ describe('CouchDbNoteRepository Error Scenarios', () => {
             // Mock findDeleted to return some notes
             const deletedNotes = [
                 new Note('note1', 'Title 1', 'Content 1', new Date(), new Date(), new Date()),
-                new Note('note2', 'Title 2', 'Content 2', new Date(), new Date(), new Date())
+                new Note('note2', 'Title 2', 'Content 2', new Date(), new Date(), new Date()),
             ];
-            
+
             repository.findDeleted = jest.fn().mockResolvedValue(deletedNotes);
-            repository.permanentDelete = jest.fn()
+            repository.permanentDelete = jest
+                .fn()
                 .mockResolvedValueOnce(true)
                 .mockRejectedValueOnce(new Error('Permanent delete failed'));
-            
+
             await expect(repository.emptyRecycleBin()).rejects.toThrow('Permanent delete failed');
         });
     });
@@ -470,11 +469,11 @@ describe('CouchDbNoteRepository Error Scenarios', () => {
     describe('Result Processing Error Scenarios', () => {
         test('should handle empty results in findAll', async () => {
             const mockDb = {
-                view: jest.fn().mockResolvedValue({ rows: null })
+                view: jest.fn().mockResolvedValue({ rows: null }),
             };
-            
+
             repository.db = mockDb;
-            
+
             const result = await repository.findAll();
             expect(result).toEqual([]);
         });
@@ -492,15 +491,15 @@ describe('CouchDbNoteRepository Error Scenarios', () => {
                                 content: 'Valid content',
                                 deletedAt: null,
                                 createdAt: new Date().toISOString(),
-                                updatedAt: new Date().toISOString()
-                            }
-                        }
-                    ]
-                })
+                                updatedAt: new Date().toISOString(),
+                            },
+                        },
+                    ],
+                }),
             };
-            
+
             repository.db = mockDb;
-            
+
             const result = await repository.findAll();
             expect(result).toHaveLength(1);
             expect(result[0].title).toBe('Valid Note');
@@ -523,26 +522,26 @@ describe('CouchDbNoteRepository Error Scenarios', () => {
                 _id: '_design/notes',
                 _rev: '1-abc',
                 views: {
-                    all: { map: 'function(doc) { emit(doc._id, null); }' }
-                }
+                    all: { map: 'function(doc) { emit(doc._id, null); }' },
+                },
             };
 
             const mockDb = {
                 get: jest.fn().mockResolvedValue(existingDoc),
-                insert: jest.fn().mockResolvedValue({ ok: true })
+                insert: jest.fn().mockResolvedValue({ ok: true }),
             };
             const mockClient = {
                 db: {
-                    list: jest.fn().mockResolvedValue(['test_notes_error_db'])
+                    list: jest.fn().mockResolvedValue(['test_notes_error_db']),
                 },
-                use: jest.fn().mockReturnValue(mockDb)
+                use: jest.fn().mockReturnValue(mockDb),
             };
-            
+
             repository.client = mockClient;
 
             const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
             await repository.init();
-            
+
             expect(consoleSpy).toHaveBeenCalledWith('Updated design document with all views');
             consoleSpy.mockRestore();
         });
@@ -550,7 +549,7 @@ describe('CouchDbNoteRepository Error Scenarios', () => {
         test('moveToRecycleBin should return false when insert throws 404', async () => {
             const mockDb = {
                 get: jest.fn().mockResolvedValue({ _id: 'note1', _rev: '1-rev' }),
-                insert: jest.fn().mockRejectedValue({ statusCode: 404 })
+                insert: jest.fn().mockRejectedValue({ statusCode: 404 }),
             };
             repository.db = mockDb;
 
@@ -561,7 +560,7 @@ describe('CouchDbNoteRepository Error Scenarios', () => {
         test('restore should return false when insert throws 404', async () => {
             const mockDb = {
                 get: jest.fn().mockResolvedValue({ _id: 'note1', _rev: '1-rev' }),
-                insert: jest.fn().mockRejectedValue({ statusCode: 404 })
+                insert: jest.fn().mockRejectedValue({ statusCode: 404 }),
             };
             repository.db = mockDb;
 
@@ -572,7 +571,7 @@ describe('CouchDbNoteRepository Error Scenarios', () => {
         test('permanentDelete should return false when destroy throws 404', async () => {
             const mockDb = {
                 get: jest.fn().mockResolvedValue({ _id: 'note1', _rev: '1-rev' }),
-                destroy: jest.fn().mockRejectedValue({ statusCode: 404 })
+                destroy: jest.fn().mockRejectedValue({ statusCode: 404 }),
             };
             repository.db = mockDb;
 
@@ -587,7 +586,7 @@ describe('CouchDbNoteRepository Error Scenarios', () => {
 
         test('countDeleted should handle errors', async () => {
             const mockDb = {
-                view: jest.fn().mockRejectedValue(new Error('view failed'))
+                view: jest.fn().mockRejectedValue(new Error('view failed')),
             };
             repository.db = mockDb;
             await expect(repository.countDeleted()).rejects.toThrow('view failed');

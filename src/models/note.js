@@ -64,7 +64,7 @@ export class Note {
             content: this.content,
             createdAt: this.createdAt,
             updatedAt: this.updatedAt,
-            deletedAt: this.deletedAt
+            deletedAt: this.deletedAt,
         };
     }
 

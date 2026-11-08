@@ -6,9 +6,18 @@ describe('Extra Coverage Tests', () => {
     describe('NoteRepository Base Class', () => {
         const repo = new NoteRepository();
         const methods = [
-            'findAll', 'findDeleted', 'findAllIncludingDeleted', 'findById',
-            'create', 'update', 'moveToRecycleBin', 'restore', 'permanentDelete',
-            'emptyRecycleBin', 'restoreAll', 'countDeleted'
+            'findAll',
+            'findDeleted',
+            'findAllIncludingDeleted',
+            'findById',
+            'create',
+            'update',
+            'moveToRecycleBin',
+            'restore',
+            'permanentDelete',
+            'emptyRecycleBin',
+            'restoreAll',
+            'countDeleted',
         ];
 
         test.each(methods)('%s should throw Method not implemented', async (method) => {
@@ -33,7 +42,7 @@ describe('Extra Coverage Tests', () => {
             expect(typeof apiServer.initializeApp).toBe('function');
             // Mock repository to avoid real DB connection
             const mockRepo = {
-                init: jest.fn().mockResolvedValue()
+                init: jest.fn().mockResolvedValue(),
             };
             const result = await apiServer.initializeApp(mockRepo);
             expect(result.repository).toBe(mockRepo);

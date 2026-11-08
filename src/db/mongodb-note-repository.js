@@ -8,7 +8,7 @@ const log = createLogger('MongoDbNoteRepository');
 /**
  * MongoDB implementation of the NoteRepository interface.
  * Provides persistent storage for notes using MongoDB as the backend via Mongoose ODM.
- * 
+ *
  * @class
  * @extends NoteRepository
  * @example
@@ -25,7 +25,7 @@ export class MongoDbNoteRepository extends NoteRepository {
      * @example
      * // With authentication
      * const repo = new MongoDbNoteRepository('mongodb://user:pass@localhost:27017', 'my_notes');
-     * 
+     *
      * // Without authentication
      * const repo = new MongoDbNoteRepository('mongodb://localhost:27017', 'my_notes');
      */
@@ -39,7 +39,7 @@ export class MongoDbNoteRepository extends NoteRepository {
     /**
      * Initialize the repository by connecting to MongoDB and setting up the schema.
      * This method must be called before using any other repository methods.
-     * 
+     *
      * @returns {Promise<void>}
      * @throws {Error} When MongoDB is unreachable or connection fails
      * @throws {Error} When schema creation fails
@@ -63,7 +63,7 @@ export class MongoDbNoteRepository extends NoteRepository {
                     content: { type: String, required: true },
                     deletedAt: { type: Date, default: null },
                     createdAt: { type: Date, default: Date.now },
-                    updatedAt: { type: Date, default: Date.now }
+                    updatedAt: { type: Date, default: Date.now },
                 });
 
                 this.NoteModel = mongoose.model('Note', noteSchema);
@@ -85,14 +85,16 @@ export class MongoDbNoteRepository extends NoteRepository {
     async findAll() {
         try {
             const notes = await this.NoteModel.find({ deletedAt: null }).sort({ updatedAt: -1 });
-            return notes.map(doc => Note.fromObject({
-                id: doc._id.toString(),
-                title: doc.title,
-                content: doc.content,
-                deletedAt: doc.deletedAt,
-                createdAt: doc.createdAt,
-                updatedAt: doc.updatedAt
-            }));
+            return notes.map((doc) =>
+                Note.fromObject({
+                    id: doc._id.toString(),
+                    title: doc.title,
+                    content: doc.content,
+                    deletedAt: doc.deletedAt,
+                    createdAt: doc.createdAt,
+                    updatedAt: doc.updatedAt,
+                }),
+            );
         } catch (error) {
             log.error('Failed to find all active notes:', error);
             throw error;
@@ -110,14 +112,16 @@ export class MongoDbNoteRepository extends NoteRepository {
     async findDeleted() {
         try {
             const notes = await this.NoteModel.find({ deletedAt: { $ne: null } }).sort({ deletedAt: -1 });
-            return notes.map(doc => Note.fromObject({
-                id: doc._id.toString(),
-                title: doc.title,
-                content: doc.content,
-                deletedAt: doc.deletedAt,
-                createdAt: doc.createdAt,
-                updatedAt: doc.updatedAt
-            }));
+            return notes.map((doc) =>
+                Note.fromObject({
+                    id: doc._id.toString(),
+                    title: doc.title,
+                    content: doc.content,
+                    deletedAt: doc.deletedAt,
+                    createdAt: doc.createdAt,
+                    updatedAt: doc.updatedAt,
+                }),
+            );
         } catch (error) {
             log.error('Failed to find deleted notes:', error);
             throw error;
@@ -132,14 +136,16 @@ export class MongoDbNoteRepository extends NoteRepository {
     async findAllIncludingDeleted() {
         try {
             const notes = await this.NoteModel.find().sort({ updatedAt: -1 });
-            return notes.map(doc => Note.fromObject({
-                id: doc._id.toString(),
-                title: doc.title,
-                content: doc.content,
-                deletedAt: doc.deletedAt,
-                createdAt: doc.createdAt,
-                updatedAt: doc.updatedAt
-            }));
+            return notes.map((doc) =>
+                Note.fromObject({
+                    id: doc._id.toString(),
+                    title: doc.title,
+                    content: doc.content,
+                    deletedAt: doc.deletedAt,
+                    createdAt: doc.createdAt,
+                    updatedAt: doc.updatedAt,
+                }),
+            );
         } catch (error) {
             log.error('Failed to find all notes including deleted:', error);
             throw error;
@@ -171,7 +177,7 @@ export class MongoDbNoteRepository extends NoteRepository {
                 content: doc.content,
                 deletedAt: doc.deletedAt,
                 createdAt: doc.createdAt,
-                updatedAt: doc.updatedAt
+                updatedAt: doc.updatedAt,
             });
         } catch (error) {
             if (error.name === 'CastError') {
@@ -204,7 +210,7 @@ export class MongoDbNoteRepository extends NoteRepository {
                 content: note.content,
                 deletedAt: null,
                 createdAt: now,
-                updatedAt: now
+                updatedAt: now,
             });
 
             const savedNote = await newNote.save();
@@ -215,7 +221,7 @@ export class MongoDbNoteRepository extends NoteRepository {
                 content: savedNote.content,
                 deletedAt: savedNote.deletedAt,
                 createdAt: new Date(savedNote.createdAt),
-                updatedAt: new Date(savedNote.updatedAt)
+                updatedAt: new Date(savedNote.updatedAt),
             });
         } catch (error) {
             log.error('Failed to create note:', error);
@@ -250,9 +256,9 @@ export class MongoDbNoteRepository extends NoteRepository {
                 {
                     title: note.title,
                     content: note.content,
-                    updatedAt: now
+                    updatedAt: now,
                 },
-                { new: true } // Return the updated document
+                { new: true }, // Return the updated document
             );
 
             if (!updatedDoc) {
@@ -265,7 +271,7 @@ export class MongoDbNoteRepository extends NoteRepository {
                 content: updatedDoc.content,
                 deletedAt: updatedDoc.deletedAt,
                 createdAt: updatedDoc.createdAt,
-                updatedAt: updatedDoc.updatedAt
+                updatedAt: updatedDoc.updatedAt,
             });
         } catch (error) {
             if (error.name === 'CastError') {
@@ -292,13 +298,10 @@ export class MongoDbNoteRepository extends NoteRepository {
     async moveToRecycleBin(id) {
         try {
             const now = new Date();
-            const result = await this.NoteModel.findByIdAndUpdate(
-                id,
-                {
-                    deletedAt: now,
-                    updatedAt: now
-                }
-            );
+            const result = await this.NoteModel.findByIdAndUpdate(id, {
+                deletedAt: now,
+                updatedAt: now,
+            });
             return !!result; // Convert to boolean
         } catch (error) {
             if (error.name === 'CastError') {
@@ -325,13 +328,10 @@ export class MongoDbNoteRepository extends NoteRepository {
     async restore(id) {
         try {
             const now = new Date();
-            const result = await this.NoteModel.findByIdAndUpdate(
-                id,
-                {
-                    deletedAt: null,
-                    updatedAt: now
-                }
-            );
+            const result = await this.NoteModel.findByIdAndUpdate(id, {
+                deletedAt: null,
+                updatedAt: now,
+            });
             return !!result; // Convert to boolean
         } catch (error) {
             if (error.name === 'CastError') {
@@ -401,8 +401,8 @@ export class MongoDbNoteRepository extends NoteRepository {
                 { deletedAt: { $ne: null } },
                 {
                     deletedAt: null,
-                    updatedAt: now
-                }
+                    updatedAt: now,
+                },
             );
             return result.modifiedCount || 0;
         } catch (error) {

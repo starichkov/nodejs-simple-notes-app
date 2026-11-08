@@ -396,7 +396,7 @@ if (DB_VENDOR === 'new-vendor') {
 }
 ```
 
-## 🧾 About TemplateTasks
+## About TemplateTasks
 
 TemplateTasks is a personal software development initiative by Vadim Starichkov, focused on sharing open-source libraries, services, and technical demos.
 
@@ -404,7 +404,7 @@ It operates independently and outside the scope of any employment.
 
 All code is released under permissive open-source licenses. The legal structure may evolve as the project grows.
 
-## 📄 License & Attribution
+## License & Attribution
 
 This project is licensed under the **MIT License** - see the [LICENSE](https://github.com/starichkov/nodejs-simple-notes-app/blob/main/LICENSE.md) file for details.
 

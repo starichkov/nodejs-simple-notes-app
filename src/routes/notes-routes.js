@@ -39,7 +39,7 @@ export function createNotesRouter(noteRepository) {
     router.get('/', async (req, res) => {
         try {
             const notes = await noteRepository.findAll();
-            res.json(notes.map(note => note.toObject()));
+            res.json(notes.map((note) => note.toObject()));
         } catch (error) {
             log.error('Error getting all notes:', error);
             res.status(500).json({ error: 'Failed to retrieve notes' });
@@ -68,7 +68,7 @@ export function createNotesRouter(noteRepository) {
     router.get('/recycle-bin', async (req, res) => {
         try {
             const notes = await noteRepository.findDeleted();
-            res.json(notes.map(note => note.toObject()));
+            res.json(notes.map((note) => note.toObject()));
         } catch (error) {
             log.error('Error getting deleted notes:', error);
             res.status(500).json({ error: 'Failed to retrieve deleted notes' });
@@ -84,7 +84,7 @@ export function createNotesRouter(noteRepository) {
     router.get('/trash', async (req, res) => {
         try {
             const notes = await noteRepository.findDeleted();
-            res.json(notes.map(note => note.toObject()));
+            res.json(notes.map((note) => note.toObject()));
         } catch (error) {
             log.error('Error getting deleted notes:', error);
             res.status(500).json({ error: 'Failed to retrieve deleted notes' });
@@ -129,9 +129,9 @@ export function createNotesRouter(noteRepository) {
     router.delete('/recycle-bin', async (req, res) => {
         try {
             const deletedCount = await noteRepository.emptyRecycleBin();
-            res.json({ 
+            res.json({
                 message: 'Recycle bin emptied successfully',
-                deletedCount 
+                deletedCount,
             });
         } catch (error) {
             log.error('Error emptying recycle bin:', error);
@@ -155,9 +155,9 @@ export function createNotesRouter(noteRepository) {
     router.post('/recycle-bin/restore-all', async (req, res) => {
         try {
             const restoredCount = await noteRepository.restoreAll();
-            res.json({ 
+            res.json({
                 message: 'All notes restored successfully',
-                restoredCount 
+                restoredCount,
             });
         } catch (error) {
             log.error('Error restoring all notes:', error);
@@ -233,7 +233,7 @@ export function createNotesRouter(noteRepository) {
 
             const note = await noteRepository.create({
                 title: req.body.title,
-                content: req.body.content
+                content: req.body.content,
             });
 
             res.status(201).json(note.toObject());
@@ -281,7 +281,7 @@ export function createNotesRouter(noteRepository) {
 
             const note = await noteRepository.update(req.params.id, {
                 title: req.body.title,
-                content: req.body.content
+                content: req.body.content,
             });
 
             if (!note) {

@@ -55,7 +55,7 @@ describe('NoteRepository Abstract Interface Tests', () => {
             await expect(repository.countDeleted()).rejects.toThrow('Method not implemented');
         });
 
-/*
+        /*
         test('should throw "Method not implemented" for delete', async () => {
             await expect(repository.delete('test-id')).rejects.toThrow('Method not implemented');
         });
@@ -112,7 +112,7 @@ describe('NoteRepository Abstract Interface Tests', () => {
                 () => repository.restore('test'),
                 () => repository.permanentDelete('test'),
                 () => repository.emptyRecycleBin(),
-                () => repository.countDeleted()
+                () => repository.countDeleted(),
             ];
 
             for (const method of errorMethods) {
@@ -131,10 +131,10 @@ describe('NoteRepository Abstract Interface Tests', () => {
                 () => repository.update('test', {}),
                 () => repository.moveToRecycleBin('test'),
                 () => repository.restore('test'),
-                () => repository.permanentDelete('test')
+                () => repository.permanentDelete('test'),
             ];
 
-            methods.forEach(method => {
+            methods.forEach((method) => {
                 const promise = method();
                 expect(promise).toBeInstanceOf(Promise);
                 // The promise should be immediately rejected
@@ -155,10 +155,10 @@ describe('NoteRepository Abstract Interface Tests', () => {
                 () => repository.permanentDelete('test'),
                 () => repository.emptyRecycleBin(),
                 () => repository.countDeleted(),
-                () => repository.findDeleted()
+                () => repository.findDeleted(),
             ];
 
-            asyncMethods.forEach(method => {
+            asyncMethods.forEach((method) => {
                 const result = method();
                 expect(result).toBeInstanceOf(Promise);
                 // Suppress unhandled promise rejection warnings in tests
@@ -170,8 +170,7 @@ describe('NoteRepository Abstract Interface Tests', () => {
     describe('Legacy Methods', () => {
         test('findDeleted should call findDeleted', async () => {
             // Mock the findDeleted method
-            const mockFindDeleted = jest.spyOn(repository, 'findDeleted')
-                .mockImplementation(() => Promise.resolve([]));
+            const mockFindDeleted = jest.spyOn(repository, 'findDeleted').mockImplementation(() => Promise.resolve([]));
 
             await repository.findDeleted();
 
@@ -179,7 +178,7 @@ describe('NoteRepository Abstract Interface Tests', () => {
             mockFindDeleted.mockRestore();
         });
 
-/*
+        /*
         test('moveToTrash should call moveToRecycleBin', async () => {
             // Mock the moveToRecycleBin method
             const mockMoveToRecycleBin = jest.spyOn(repository, 'moveToRecycleBin')
@@ -192,7 +191,7 @@ describe('NoteRepository Abstract Interface Tests', () => {
         });
 */
 
-/*
+        /*
         test('delete should call moveToRecycleBin', async () => {
             // Mock the moveToRecycleBin method
             const mockMoveToRecycleBin = jest.spyOn(repository, 'moveToRecycleBin')

@@ -10,11 +10,11 @@ describe('MongoDbNoteRepository Error Handling Tests', () => {
 
     beforeEach(() => {
         repository = new MongoDbNoteRepository('mongodb://localhost:27017', 'test_notes_error');
-        
+
         // Store original methods to restore later
         originalConnect = mongoose.connect;
         originalModel = mongoose.model;
-        
+
         // Mock console methods to avoid output during tests
         jest.spyOn(console, 'log').mockImplementation(() => {});
         jest.spyOn(console, 'error').mockImplementation(() => {});
@@ -24,11 +24,11 @@ describe('MongoDbNoteRepository Error Handling Tests', () => {
         // Restore original methods
         mongoose.connect = originalConnect;
         mongoose.model = originalModel;
-        
+
         // Restore console methods
         console.log.mockRestore();
         console.error.mockRestore();
-        
+
         jest.clearAllMocks();
     });
 
@@ -68,7 +68,7 @@ describe('MongoDbNoteRepository Error Handling Tests', () => {
                 findByIdAndDelete: jest.fn(),
                 deleteMany: jest.fn(),
                 countDocuments: jest.fn(),
-                save: jest.fn()
+                save: jest.fn(),
             };
         });
 
@@ -84,7 +84,7 @@ describe('MongoDbNoteRepository Error Handling Tests', () => {
 
             test('should handle network errors in findAll', async () => {
                 repository.NoteModel.find = jest.fn().mockReturnValue({
-                    sort: jest.fn().mockRejectedValue(new Error('Network error'))
+                    sort: jest.fn().mockRejectedValue(new Error('Network error')),
                 });
 
                 await expect(repository.findAll()).rejects.toThrow('Network error');
@@ -95,7 +95,7 @@ describe('MongoDbNoteRepository Error Handling Tests', () => {
         describe('findDeleted() error handling', () => {
             test('should handle database query errors in findDeleted', async () => {
                 repository.NoteModel.find = jest.fn().mockReturnValue({
-                    sort: jest.fn().mockRejectedValue(new Error('Database error'))
+                    sort: jest.fn().mockRejectedValue(new Error('Database error')),
                 });
 
                 await expect(repository.findDeleted()).rejects.toThrow('Database error');
@@ -104,7 +104,7 @@ describe('MongoDbNoteRepository Error Handling Tests', () => {
 
             test('should handle timeout errors in findDeleted', async () => {
                 repository.NoteModel.find = jest.fn().mockReturnValue({
-                    sort: jest.fn().mockRejectedValue(new Error('Query timeout'))
+                    sort: jest.fn().mockRejectedValue(new Error('Query timeout')),
                 });
 
                 await expect(repository.findDeleted()).rejects.toThrow('Query timeout');
@@ -115,11 +115,14 @@ describe('MongoDbNoteRepository Error Handling Tests', () => {
         describe('findAllIncludingDeleted() error handling', () => {
             test('should handle database query errors in findAllIncludingDeleted', async () => {
                 repository.NoteModel.find = jest.fn().mockReturnValue({
-                    sort: jest.fn().mockRejectedValue(new Error('Connection lost'))
+                    sort: jest.fn().mockRejectedValue(new Error('Connection lost')),
                 });
 
                 await expect(repository.findAllIncludingDeleted()).rejects.toThrow('Connection lost');
-                expect(console.error).toHaveBeenCalledWith('Failed to find all notes including deleted:', expect.any(Error));
+                expect(console.error).toHaveBeenCalledWith(
+                    'Failed to find all notes including deleted:',
+                    expect.any(Error),
+                );
             });
         });
 
@@ -152,7 +155,7 @@ describe('MongoDbNoteRepository Error Handling Tests', () => {
         describe('create() error handling', () => {
             test('should handle validation errors in create', async () => {
                 const mockNote = {
-                    save: jest.fn().mockRejectedValue(new Error('Validation failed'))
+                    save: jest.fn().mockRejectedValue(new Error('Validation failed')),
                 };
                 repository.NoteModel = jest.fn().mockReturnValue(mockNote);
 
@@ -162,7 +165,7 @@ describe('MongoDbNoteRepository Error Handling Tests', () => {
 
             test('should handle database connection errors in create', async () => {
                 const mockNote = {
-                    save: jest.fn().mockRejectedValue(new Error('Connection lost'))
+                    save: jest.fn().mockRejectedValue(new Error('Connection lost')),
                 };
                 repository.NoteModel = jest.fn().mockReturnValue(mockNote);
 
@@ -194,14 +197,21 @@ describe('MongoDbNoteRepository Error Handling Tests', () => {
             test('should handle database errors in update', async () => {
                 repository.NoteModel.findByIdAndUpdate = jest.fn().mockRejectedValue(new Error('Update failed'));
 
-                await expect(repository.update('valid-id', { title: 'Test', content: 'Test' })).rejects.toThrow('Update failed');
-                expect(console.error).toHaveBeenCalledWith('Failed to update note with ID valid-id:', expect.any(Error));
+                await expect(repository.update('valid-id', { title: 'Test', content: 'Test' })).rejects.toThrow(
+                    'Update failed',
+                );
+                expect(console.error).toHaveBeenCalledWith(
+                    'Failed to update note with ID valid-id:',
+                    expect.any(Error),
+                );
             });
 
             test('should handle connection timeout in update', async () => {
                 repository.NoteModel.findByIdAndUpdate = jest.fn().mockRejectedValue(new Error('Timeout'));
 
-                await expect(repository.update('some-id', { title: 'Test', content: 'Test' })).rejects.toThrow('Timeout');
+                await expect(repository.update('some-id', { title: 'Test', content: 'Test' })).rejects.toThrow(
+                    'Timeout',
+                );
                 expect(console.error).toHaveBeenCalledWith('Failed to update note with ID some-id:', expect.any(Error));
             });
         });
@@ -221,7 +231,10 @@ describe('MongoDbNoteRepository Error Handling Tests', () => {
                 repository.NoteModel.findByIdAndUpdate = jest.fn().mockRejectedValue(new Error('Move failed'));
 
                 await expect(repository.moveToRecycleBin('valid-id')).rejects.toThrow('Move failed');
-                expect(console.error).toHaveBeenCalledWith('Failed to move note to recycle bin with ID valid-id:', expect.any(Error));
+                expect(console.error).toHaveBeenCalledWith(
+                    'Failed to move note to recycle bin with ID valid-id:',
+                    expect.any(Error),
+                );
             });
         });
 
@@ -240,7 +253,10 @@ describe('MongoDbNoteRepository Error Handling Tests', () => {
                 repository.NoteModel.findByIdAndUpdate = jest.fn().mockRejectedValue(new Error('Restore failed'));
 
                 await expect(repository.restore('valid-id')).rejects.toThrow('Restore failed');
-                expect(console.error).toHaveBeenCalledWith('Failed to restore note with ID valid-id:', expect.any(Error));
+                expect(console.error).toHaveBeenCalledWith(
+                    'Failed to restore note with ID valid-id:',
+                    expect.any(Error),
+                );
             });
         });
 
@@ -259,7 +275,10 @@ describe('MongoDbNoteRepository Error Handling Tests', () => {
                 repository.NoteModel.findByIdAndDelete = jest.fn().mockRejectedValue(new Error('Delete failed'));
 
                 await expect(repository.permanentDelete('valid-id')).rejects.toThrow('Delete failed');
-                expect(console.error).toHaveBeenCalledWith('Failed to permanently delete note with ID valid-id:', expect.any(Error));
+                expect(console.error).toHaveBeenCalledWith(
+                    'Failed to permanently delete note with ID valid-id:',
+                    expect.any(Error),
+                );
             });
         });
 
@@ -311,7 +330,7 @@ describe('MongoDbNoteRepository Error Handling Tests', () => {
                 findByIdAndUpdate: jest.fn(),
                 findByIdAndDelete: jest.fn(),
                 deleteMany: jest.fn(),
-                countDocuments: jest.fn()
+                countDocuments: jest.fn(),
             };
         });
 
@@ -357,7 +376,7 @@ describe('MongoDbNoteRepository Error Handling Tests', () => {
                 content: 'Test',
                 deletedAt: null,
                 createdAt: new Date(),
-                updatedAt: new Date()
+                updatedAt: new Date(),
             };
 
             repository.NoteModel.findByIdAndUpdate = jest.fn().mockResolvedValue(mockDoc);
@@ -379,7 +398,7 @@ describe('MongoDbNoteRepository Error Handling Tests', () => {
             repository.NoteModel = {
                 find: jest.fn(),
                 findById: jest.fn(),
-                countDocuments: jest.fn()
+                countDocuments: jest.fn(),
             };
         });
 
@@ -387,7 +406,7 @@ describe('MongoDbNoteRepository Error Handling Tests', () => {
             const duplicateError = new Error('Duplicate key error');
             duplicateError.code = 11000;
             repository.NoteModel.find = jest.fn().mockReturnValue({
-                sort: jest.fn().mockRejectedValue(duplicateError)
+                sort: jest.fn().mockRejectedValue(duplicateError),
             });
 
             await expect(repository.findAll()).rejects.toThrow('Duplicate key error');
@@ -399,10 +418,10 @@ describe('MongoDbNoteRepository Error Handling Tests', () => {
             validationError.name = 'ValidationError';
             validationError.errors = {
                 title: { message: 'Title is required' },
-                content: { message: 'Content is required' }
+                content: { message: 'Content is required' },
             };
             repository.NoteModel.find = jest.fn().mockReturnValue({
-                sort: jest.fn().mockRejectedValue(validationError)
+                sort: jest.fn().mockRejectedValue(validationError),
             });
 
             await expect(repository.findDeleted()).rejects.toThrow('Validation failed');
@@ -421,7 +440,10 @@ describe('MongoDbNoteRepository Error Handling Tests', () => {
         test('should handle restoreAll database errors', async () => {
             repository.NoteModel.updateMany = jest.fn().mockRejectedValue(new Error('Update failed'));
             await expect(repository.restoreAll()).rejects.toThrow('Update failed');
-            expect(console.error).toHaveBeenCalledWith('Failed to restore all notes from recycle bin:', expect.any(Error));
+            expect(console.error).toHaveBeenCalledWith(
+                'Failed to restore all notes from recycle bin:',
+                expect.any(Error),
+            );
         });
 
         test('should handle emptyRecycleBin database errors', async () => {

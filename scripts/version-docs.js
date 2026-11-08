@@ -18,27 +18,27 @@ const VERSIONED_DOCS_DIR = 'versioned-docs';
  */
 function createVersionedDocs() {
     console.log(`📚 Creating documentation for version ${VERSION}`);
-    
+
     // Generate fresh documentation
     execSync('npm run docs', { stdio: 'inherit' });
-    
+
     // Create versioned directory structure
     const versionDir = path.join(VERSIONED_DOCS_DIR, `v${VERSION}`);
-    
+
     if (!fs.existsSync(VERSIONED_DOCS_DIR)) {
         fs.mkdirSync(VERSIONED_DOCS_DIR);
     }
-    
+
     if (!fs.existsSync(versionDir)) {
         fs.mkdirSync(versionDir, { recursive: true });
     }
-    
+
     // Copy documentation to versioned directory
     execSync(`cp -r ${DOCS_DIR}/* ${versionDir}/`, { stdio: 'inherit' });
-    
+
     // Update version index
     updateVersionIndex();
-    
+
     console.log(`✅ Documentation versioned at ${versionDir}`);
 }
 
@@ -46,15 +46,16 @@ function createVersionedDocs() {
  * Update the main index with all versions
  */
 function updateVersionIndex() {
-    const versions = fs.readdirSync(VERSIONED_DOCS_DIR)
-        .filter(dir => dir.startsWith('v'))
+    const versions = fs
+        .readdirSync(VERSIONED_DOCS_DIR)
+        .filter((dir) => dir.startsWith('v'))
         .sort((a, b) => {
             // Sort versions in descending order
             const aVersion = a.substring(1);
             const bVersion = b.substring(1);
             return bVersion.localeCompare(aVersion, undefined, { numeric: true });
         });
-    
+
     const indexHtml = `
 <!DOCTYPE html>
 <html lang="en">
@@ -74,7 +75,9 @@ function updateVersionIndex() {
     <h1>📚 Notes API Documentation</h1>
     <p>Choose your version:</p>
     
-    ${versions.map((version, index) => `
+    ${versions
+        .map(
+            (version, index) => `
         <div class="version ${index === 0 ? 'latest' : ''}">
             <h2>
                 <a href="${version}/index.html">${version}</a>
@@ -82,17 +85,19 @@ function updateVersionIndex() {
             </h2>
             <p>API documentation for Notes App ${version}</p>
         </div>
-    `).join('')}
+    `,
+        )
+        .join('')}
     
     <hr>
     <p><small>Generated on ${new Date().toISOString()}</small></p>
 </body>
 </html>`;
-    
+
     fs.writeFileSync(path.join(VERSIONED_DOCS_DIR, 'index.html'), indexHtml);
 }
 
 // Run if called directly
 if (import.meta.url === `file://${process.argv[1]}`) {
     createVersionedDocs();
-} 
+}

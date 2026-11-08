@@ -1,11 +1,11 @@
 import nano from 'nano';
-import {NoteRepository} from './note-repository.js';
-import {Note} from '../models/note.js';
+import { NoteRepository } from './note-repository.js';
+import { Note } from '../models/note.js';
 
 /**
  * CouchDB implementation of the NoteRepository interface.
  * Provides persistent storage for notes using Apache CouchDB as the backend.
- * 
+ *
  * @class
  * @extends NoteRepository
  * @example
@@ -22,7 +22,7 @@ export class CouchDbNoteRepository extends NoteRepository {
      * @example
      * // With authentication
      * const repo = new CouchDbNoteRepository('http://user:pass@localhost:5984', 'my_notes');
-     * 
+     *
      * // Without authentication
      * const repo = new CouchDbNoteRepository('http://localhost:5984', 'my_notes');
      */
@@ -36,7 +36,7 @@ export class CouchDbNoteRepository extends NoteRepository {
     /**
      * Initialize the repository by ensuring the database exists and creating necessary design documents.
      * This method must be called before using any other repository methods.
-     * 
+     *
      * @returns {Promise<void>}
      * @throws {Error} When CouchDB is unreachable or database creation fails
      * @throws {Error} When design document creation fails
@@ -58,25 +58,23 @@ export class CouchDbNoteRepository extends NoteRepository {
                 _id: '_design/notes',
                 views: {
                     all: {
-                        map: "function(doc) { if (doc.type === 'note') { emit(doc._id, null); } }"
+                        map: "function(doc) { if (doc.type === 'note') { emit(doc._id, null); } }",
                     },
                     active: {
-                        map: "function(doc) { if (doc.type === 'note' && doc.deletedAt === null) { emit(doc.updatedAt, null); } }"
+                        map: "function(doc) { if (doc.type === 'note' && doc.deletedAt === null) { emit(doc.updatedAt, null); } }",
                     },
                     deleted: {
-                        map: "function(doc) { if (doc.type === 'note' && doc.deletedAt !== null) { emit(doc.deletedAt, null); } }"
-                    }
+                        map: "function(doc) { if (doc.type === 'note' && doc.deletedAt !== null) { emit(doc.deletedAt, null); } }",
+                    },
                 },
-                language: 'javascript'
+                language: 'javascript',
             };
 
             try {
                 const existingDoc = await this.db.get('_design/notes');
                 // Check if the existing design doc has all the required views
-                const hasAllViews = existingDoc.views && 
-                    existingDoc.views.all && 
-                    existingDoc.views.active && 
-                    existingDoc.views.deleted;
+                const hasAllViews =
+                    existingDoc.views && existingDoc.views.all && existingDoc.views.active && existingDoc.views.deleted;
 
                 if (!hasAllViews) {
                     // Update the existing design doc with all views
@@ -110,9 +108,9 @@ export class CouchDbNoteRepository extends NoteRepository {
     async findAll() {
         try {
             const result = await this.db.view('notes', 'active', {
-                update: true, 
+                update: true,
                 include_docs: true,
-                descending: true // Sort by date descending (newest first)
+                descending: true, // Sort by date descending (newest first)
             });
 
             if (!result.rows) {
@@ -120,21 +118,23 @@ export class CouchDbNoteRepository extends NoteRepository {
                 return [];
             }
 
-            const notes = result.rows.map(row => {
-                if (!row.doc) {
-                    console.log('Row without doc:', row);
-                    return null;
-                }
-                const doc = row.doc;
-                return Note.fromObject({
-                    id: doc._id,
-                    title: doc.title,
-                    content: doc.content,
-                    deletedAt: doc.deletedAt,
-                    createdAt: new Date(doc.createdAt),
-                    updatedAt: new Date(doc.updatedAt)
-                });
-            }).filter(note => note !== null);
+            const notes = result.rows
+                .map((row) => {
+                    if (!row.doc) {
+                        console.log('Row without doc:', row);
+                        return null;
+                    }
+                    const doc = row.doc;
+                    return Note.fromObject({
+                        id: doc._id,
+                        title: doc.title,
+                        content: doc.content,
+                        deletedAt: doc.deletedAt,
+                        createdAt: new Date(doc.createdAt),
+                        updatedAt: new Date(doc.updatedAt),
+                    });
+                })
+                .filter((note) => note !== null);
             return notes;
         } catch (error) {
             console.error('Failed to find all active notes:', error);
@@ -153,9 +153,9 @@ export class CouchDbNoteRepository extends NoteRepository {
     async findDeleted() {
         try {
             const result = await this.db.view('notes', 'deleted', {
-                update: true, 
+                update: true,
                 include_docs: true,
-                descending: true // Sort by deleted date descending (most recently deleted first)
+                descending: true, // Sort by deleted date descending (most recently deleted first)
             });
             return this._mapResult(result);
         } catch (error) {
@@ -172,9 +172,9 @@ export class CouchDbNoteRepository extends NoteRepository {
     async findAllIncludingDeleted() {
         try {
             const result = await this.db.view('notes', 'all', {
-                update: true, 
+                update: true,
                 include_docs: true,
-                descending: true
+                descending: true,
             });
 
             return this._mapResult(result);
@@ -206,7 +206,7 @@ export class CouchDbNoteRepository extends NoteRepository {
                 content: doc.content,
                 deletedAt: doc.deletedAt ? new Date(doc.deletedAt) : null,
                 createdAt: new Date(doc.createdAt),
-                updatedAt: new Date(doc.updatedAt)
+                updatedAt: new Date(doc.updatedAt),
             });
         } catch (error) {
             if (error.statusCode === 404) {
@@ -240,7 +240,7 @@ export class CouchDbNoteRepository extends NoteRepository {
                 content: note.content,
                 deletedAt: null,
                 createdAt: now.toISOString(),
-                updatedAt: now.toISOString()
+                updatedAt: now.toISOString(),
             };
 
             const result = await this.db.insert(doc);
@@ -251,7 +251,7 @@ export class CouchDbNoteRepository extends NoteRepository {
                 content: doc.content,
                 deletedAt: doc.deletedAt,
                 createdAt: new Date(doc.createdAt),
-                updatedAt: new Date(doc.updatedAt)
+                updatedAt: new Date(doc.updatedAt),
             });
         } catch (error) {
             console.error('Failed to create note:', error);
@@ -281,7 +281,6 @@ export class CouchDbNoteRepository extends NoteRepository {
      */
     async update(id, note) {
         try {
-
             // Get the current document
             let currentDoc;
             try {
@@ -304,7 +303,7 @@ export class CouchDbNoteRepository extends NoteRepository {
                 content: note.content,
                 deletedAt: currentDoc.deletedAt || null,
                 createdAt: currentDoc.createdAt,
-                updatedAt: now.toISOString()
+                updatedAt: now.toISOString(),
             };
 
             const result = await this.db.insert(updatedDoc);
@@ -315,7 +314,7 @@ export class CouchDbNoteRepository extends NoteRepository {
                 content: note.content,
                 deletedAt: updatedDoc.deletedAt ? new Date(updatedDoc.deletedAt) : null,
                 createdAt: new Date(currentDoc.createdAt),
-                updatedAt: new Date(updatedDoc.updatedAt)
+                updatedAt: new Date(updatedDoc.updatedAt),
             });
         } catch (error) {
             console.error(`Failed to update note with ID ${id}:`, error);
@@ -356,7 +355,7 @@ export class CouchDbNoteRepository extends NoteRepository {
             const updatedDoc = {
                 ...currentDoc,
                 deletedAt: now.toISOString(),
-                updatedAt: now.toISOString()
+                updatedAt: now.toISOString(),
             };
 
             await this.db.insert(updatedDoc);
@@ -400,7 +399,7 @@ export class CouchDbNoteRepository extends NoteRepository {
             const updatedDoc = {
                 ...currentDoc,
                 deletedAt: null,
-                updatedAt: now.toISOString()
+                updatedAt: now.toISOString(),
             };
 
             await this.db.insert(updatedDoc);
@@ -519,7 +518,7 @@ export class CouchDbNoteRepository extends NoteRepository {
     async countDeleted() {
         try {
             const result = await this.db.view('notes', 'deleted', {
-                update: true
+                update: true,
             });
             return result.rows ? result.rows.length : 0;
         } catch (error) {
@@ -534,20 +533,22 @@ export class CouchDbNoteRepository extends NoteRepository {
             return [];
         }
 
-        return result.rows.map(row => {
-            if (!row.doc) {
-                console.log('Row without doc:', row);
-                return null;
-            }
-            const doc = row.doc;
-            return Note.fromObject({
-                id: doc._id,
-                title: doc.title,
-                content: doc.content,
-                deletedAt: doc.deletedAt ? new Date(doc.deletedAt) : null,
-                createdAt: new Date(doc.createdAt),
-                updatedAt: new Date(doc.updatedAt)
-            });
-        }).filter(note => note !== null);
+        return result.rows
+            .map((row) => {
+                if (!row.doc) {
+                    console.log('Row without doc:', row);
+                    return null;
+                }
+                const doc = row.doc;
+                return Note.fromObject({
+                    id: doc._id,
+                    title: doc.title,
+                    content: doc.content,
+                    deletedAt: doc.deletedAt ? new Date(doc.deletedAt) : null,
+                    createdAt: new Date(doc.createdAt),
+                    updatedAt: new Date(doc.updatedAt),
+                });
+            })
+            .filter((note) => note !== null);
     }
 }
