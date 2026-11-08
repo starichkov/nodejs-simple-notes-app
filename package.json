@@ -52,5 +52,8 @@
     "jsdoc": "^4.0.5",
     "supertest": "^7.2.2",
     "testcontainers": "^12.2.1"
+  },
+  "overrides": {
+    "glob": "~14.0.4"
   }
 }
