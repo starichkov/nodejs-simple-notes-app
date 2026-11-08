@@ -1,5 +1,5 @@
 # Build stage for applying security updates
-FROM mongo:8.0.26-noble AS build
+FROM mongo:9.0.4-resolute AS build
 
 # Update and install security patches
 # Clean up apt cache to reduce image size
@@ -16,8 +16,8 @@ FROM build AS production
 
 # Add Dockerfile Labels
 LABEL title="MongoDB with Security Updates"
-LABEL description="MongoDB based on official mongo:8.0.26-noble image with all security patches applied"
-LABEL version="8.0.26"
+LABEL description="MongoDB based on official mongo:9.0.4-resolute image with all security patches applied"
+LABEL version="9.0.4"
 LABEL maintainer="Vadim Starichkov <starichkovva@gmail.com>"
 LABEL license="MIT"
 LABEL source="https://github.com/starichkov/nodejs-simple-notes-app.git"

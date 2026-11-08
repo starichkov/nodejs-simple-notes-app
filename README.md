@@ -42,7 +42,7 @@ This design allows for easy switching between database vendors by implementing a
 - npm or pnpm
 - One of the following databases:
   - CouchDB (v3.5.2.1 or higher)
-  - MongoDB (v8.0.26 or higher)
+  - MongoDB (v9.0.4 or higher)
 
 Stable work on other versions is not guaranteed. Node.js v26 is the primary development and runtime version; Node.js v22 and v24 remain supported in CI.
 
@@ -225,6 +225,10 @@ The test scripts will:
 - Test all API endpoints (health, CRUD operations)
 - Verify the web UI is accessible
 - Clean up by stopping the services
+
+#### MongoDB Integration Test Troubleshooting
+
+The MongoDB repository integration tests start `mongo:9.0.4-resolute` through Testcontainers. This MongoDB 9.0 image is used to avoid the known MongoDB 8.0 incompatibility with Linux kernel `6.19` and newer. If the integration suite fails before database initialization, check the container logs for a kernel compatibility message and run the tests on a host or CI runner with a supported kernel. This is an environment limitation, not an application test failure; do not diagnose affected MongoDB test failures as repository regressions without first checking whether the container started successfully.
 
 ### Accessing the Application
 
