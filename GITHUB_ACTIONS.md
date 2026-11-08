@@ -4,7 +4,7 @@ Comprehensive CI/CD automation for the Node.js notes app with testing and docume
 
 ## 📋 Overview
 
-We have **two optimized workflows** that provide complete automation:
+We have **two workflows** that provide testing and documentation automation:
 
 ### 🧪 **Testing Workflow** (`node.js.yml`)
 - **Runs unit tests** with coverage reporting
@@ -15,9 +15,9 @@ We have **two optimized workflows** that provide complete automation:
 - **Generates JSDoc documentation** automatically
 - **Validates documentation quality** with coverage analysis
 - **Deploys to GitHub Pages** for public access
-- **Optimized single-job pipeline** for speed and efficiency
+- **Three-job pipeline** that separates generation, quality checks, and deployment
 
-Both workflows are designed to be **simple, fast, and reliable**.
+Both workflows run on `ubuntu-22.04` and are configured in `.github/workflows/`.
 
 ## 🔧 Workflows
 
@@ -27,7 +27,7 @@ Both workflows are designed to be **simple, fast, and reliable**.
 
 **Two Jobs**:
 
-1. **`build`** - Unit tests and coverage
+1. **`build`** - Dependency installation and project build across Node.js versions; coverage on Node.js 26
 2. **`docker-compose-tests`** - Database integration testing (matrix: CouchDB × MongoDB)
 
 **Triggers**:
@@ -36,7 +36,7 @@ Both workflows are designed to be **simple, fast, and reliable**.
 
 **Execution Flow**:
 ```
-build (unit tests + coverage)
+build (Node.js 22/24/26 matrix; coverage on 26)
    ↓
 docker-compose-tests (parallel: CouchDB + MongoDB)
 ```
@@ -45,9 +45,11 @@ docker-compose-tests (parallel: CouchDB + MongoDB)
 
 **Purpose**: Automated documentation generation, quality control, and deployment.
 
-**Single Optimized Job**:
+**Three Jobs**:
 
-**`docs-pipeline`** - Complete documentation workflow in one efficient job
+1. **`generate-docs`** - Generates and uploads the JSDoc site as a 30-day artifact
+2. **`docs-quality`** - Downloads the artifact and runs link and coverage checks
+3. **`deploy-docs`** - Publishes the artifact to GitHub Pages after the checks pass
 
 **Triggers**:
 - Push to `main` and `develop` branches
@@ -56,20 +58,20 @@ docker-compose-tests (parallel: CouchDB + MongoDB)
 
 **Execution Flow**:
 ```
-Setup (checkout, Node.js 26, npm install)
+Generate (`checkout`, Node.js 26, `npm ci`, `npm run docs`)
    ↓
-Generate (JSDoc documentation build)
+Artifact (upload generated `docs/`)
    ↓
-Quality Check (link validation, coverage analysis)
+Quality Check (download artifact, link validation, coverage analysis)
    ↓
-Deploy (GitHub Pages - main branch only)
+Deploy (GitHub Pages - main branch pushes only)
 ```
 
 **Key Features**:
-- ✅ **Optimized performance**: Single job eliminates redundant setups
-- ✅ **Quality gates**: Documentation must pass validation before deployment
+- ✅ **Artifact-based handoff**: Generated documentation is passed between jobs
+- ✅ **Quality gates**: Documentation must pass link and coverage checks before deployment
 - ✅ **Conditional deployment**: Only deploys on main branch pushes
-- ✅ **Fast execution**: ~2-3 minutes vs traditional 4-5 minute multi-job approach
+- ✅ **Independent triggers**: Runs on pushes to `main`/`develop`, pull requests to `main`, and published releases
 
 ## 🧪 What Gets Tested & Generated
 
@@ -77,9 +79,9 @@ Deploy (GitHub Pages - main branch only)
 
 #### Unit Tests Job
 - ✅ **Dependencies installation** (`npm ci`)
-- ✅ **Project build** (if build script exists)
-- ✅ **Unit test execution** with coverage
-- ✅ **Coverage upload** to Codecov
+- ✅ **Project build** (if a build script exists) on Node.js 22, 24, and 26
+- ✅ **Unit test execution** with coverage on Node.js 26
+- ✅ **Coverage upload** to Codecov on Node.js 26 (`CODECOV_TOKEN` secret required)
 
 #### Docker Compose Tests Job
 - ✅ **CouchDB setup** with secure credentials
@@ -91,21 +93,18 @@ Deploy (GitHub Pages - main branch only)
 
 #### Documentation Generation
 - ✅ **JSDoc compilation** from source code comments
-- ✅ **README integration** into main documentation
-- ✅ **API reference generation** with examples
-- ✅ **Source code syntax highlighting**
+- ✅ **Generated site upload** as the `documentation` artifact
+- ✅ **30-day artifact retention** for generated `docs/`
 
 #### Quality Validation
-- ✅ **Documentation coverage analysis** (80% threshold)
+- ✅ **Documentation coverage analysis** (80% overall function/class threshold)
 - ✅ **Broken link detection** with linkinator
-- ✅ **JSDoc syntax validation**
-- ✅ **Function/class documentation completeness**
+- ✅ **Function/class documentation reporting** and required-tag checks
 
 #### Deployment (Main Branch Only)
-- ✅ **GitHub Pages deployment** with custom domain support
+- ✅ **GitHub Pages deployment** using the generated documentation artifact
 - ✅ **Automatic updates** on every main branch push
-- ✅ **Public accessibility** for API consumers
-- ✅ **SEO optimization** with proper meta tags
+- ✅ **Deployment environment**: `github-pages`
 
 ## 🛡️ Security Features
 
@@ -155,40 +154,22 @@ npm run docs:serve                     # Preview locally
 - ✅ Docker Compose credential validation
 
 #### Documentation Validation
-- ✅ JSDoc syntax and compilation
-- ✅ Documentation coverage thresholds
-- ✅ Link validation and integrity
-- ✅ API reference completeness
+- ✅ Workflow and Docker Compose validation (via `validate-ci.sh`)
+- ✅ Documentation generation (`npm run docs`)
+- ✅ Documentation coverage threshold (`node scripts/check-docs-coverage.js`)
+- ✅ Link validation in CI via `linkinator`
 
 ## 📊 Typical Execution Time
 
 ### Testing Pipeline (`node.js.yml`)
-**Pull Request/Push:**
-- **Unit tests**: ~2-3 minutes
-- **Docker Compose tests**: ~4-6 minutes (parallel)
-- **Total**: ~6-8 minutes
-
-**What Runs in Parallel:**
-- CouchDB and MongoDB tests run simultaneously (matrix strategy)
-- Unit tests run first, then Docker Compose tests start
+- The `build` job runs a Node.js `22.x`/`24.x`/`26.x` matrix.
+- Coverage and Codecov upload run only for the `26.x` matrix entry.
+- The Docker Compose matrix starts only after `build` completes, with CouchDB and MongoDB running in parallel.
 
 ### Documentation Pipeline (`docs.yml`)
-**Pull Request:**
-- **Documentation build + quality checks**: ~2-3 minutes
-- **No deployment** (PR validation only)
-
-**Main Branch Push:**
-- **Documentation build + quality + deployment**: ~2-3 minutes
-- **GitHub Pages live** within 1-2 minutes after workflow completion
-
-### Combined Workflow Performance
-**For Pull Requests:**
-- Both workflows run in parallel
-- **Total time**: ~6-8 minutes (max of either workflow)
-
-**For Main Branch Pushes:**
-- Testing + Documentation + Deployment
-- **Total time**: ~6-8 minutes (parallel execution)
+- `generate-docs` and `docs-quality` run sequentially through the uploaded artifact.
+- `deploy-docs` runs after both jobs and only for pushes to `main`.
+- Pull requests and published releases run generation and quality checks but do not satisfy the deployment condition.
 
 ## 🎯 Design Philosophy
 
@@ -197,7 +178,7 @@ npm run docs:serve                     # Preview locally
 - ✅ **Essential automation only** - comprehensive testing + documentation
 - ✅ **Fast feedback** for developers
 - ✅ **Easy to understand** and maintain
-- ✅ **Optimized performance** - single-job documentation pipeline
+- ✅ **Explicit job dependencies** - documentation quality and deployment consume generated artifacts
 
 **Quality Without Complexity:**
 - ✅ **Automated quality gates** for code and documentation
@@ -211,7 +192,6 @@ npm run docs:serve                     # Preview locally
 - ❌ No scheduled runs
 - ❌ No multiple test levels
 - ❌ No advanced configurations
-- ❌ No multi-job documentation workflows (optimized to single job)
 
 ## 🚨 Troubleshooting
 
@@ -248,8 +228,8 @@ export MONGODB_DATABASE="test_db"
 # Test JSDoc compilation locally
 npm run docs
 
-# Check for JSDoc syntax errors
-npx jsdoc --version
+# Check the generated output
+ls -la docs/
 ```
 
 **5. Documentation coverage failures:**
@@ -340,8 +320,8 @@ export COUCHDB_DATABASE="your_database"
 
 **Local development:**
 ```bash
-# Node.js LTS version (required)
-node --version    # Should be 24.x
+# Node.js version (the workflow uses Node.js 26)
+node --version
 
 # Documentation generation
 npm run docs                           # Generate docs
@@ -352,8 +332,7 @@ node scripts/check-docs-coverage.js    # Quality check
 **GitHub Pages setup:**
 1. **Repository Settings** → **Pages**
 2. **Source**: GitHub Actions
-3. **Custom domain** (optional): Configure in repository settings
-4. **Automatic deployment** on main branch pushes
+3. **Automatic deployment** on main branch pushes
 
 **Node.js Requirements:**
 ```json
@@ -365,7 +344,7 @@ node scripts/check-docs-coverage.js    # Quality check
 }
 ```
 
-Support is maintained for Node.js 22 and 24, with 24 being the primary version used for coverage and documentation.
+The test workflow covers Node.js 22, 24, and 26. The documentation workflow uses Node.js 26. The package requires Node.js 22 or newer and npm 10 or newer.
 
 ## 🎯 Best Practices
 
@@ -414,14 +393,14 @@ Support is maintained for Node.js 22 and 24, with 24 being the primary version u
 ## 🚀 Benefits of This Approach
 
 **Developer Friendly:**
-- **Fast feedback** (~6-8 minutes total for both pipelines)
+- **Clear workflow stages** for testing and documentation
 - **Clear pass/fail status** for testing and documentation
 - **Easy to debug** when things go wrong
 - **Automatic documentation** always up-to-date with code
 
 **Maintainable:**
 - **Two focused workflows** - clear separation of concerns
-- **Optimized job design** - single job for documentation efficiency
+- **Explicit job dependencies** - generated documentation is quality-checked before deployment
 - **Simple dependencies** - no complex conditional logic
 - **Quality gates** prevent bad deployments
 
@@ -432,7 +411,7 @@ Support is maintained for Node.js 22 and 24, with 24 being the primary version u
 - **Professional documentation** with automated quality control
 
 **Cost Effective:**
-- **Efficient use of CI minutes** - optimized single-job documentation
+- **Artifact reuse** - generated documentation is passed between documentation jobs
 - **Parallel execution** where beneficial
 - **No redundant operations** (eliminated duplicate checkouts/setups)
 - **Smart conditional deployment** (main branch only)
