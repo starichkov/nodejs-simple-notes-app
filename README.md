@@ -321,6 +321,8 @@ Content-Type: application/json
 }
 ```
 
+Both create and update requests use the same schema: `title` and `content` are required strings, must not be blank, and may contain at most 200 and 10,000 characters respectively. Invalid types, blank values, or over-limit values return `400` and do not call the repository.
+
 ### Update a note
 ```
 PUT /api/notes/:id

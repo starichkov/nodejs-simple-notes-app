@@ -1,49 +1,7 @@
 import express from 'express';
 import { BadRequestError, InternalServerError, NotFoundError } from '../errors/app-error.js';
 import { errorHandler } from '../middleware/error-handler.js';
-
-const DEFAULT_PAGE_LIMIT = 20;
-const MAX_PAGE_LIMIT = 100;
-
-/**
- * Parse and validate active-note pagination query parameters.
- * @param {object} query - Express query parameters
- * @returns {{limit: number, offset: number}} Normalized pagination options
- * @throws {BadRequestError} When a value is malformed or out of range
- * @example parsePagination({ limit: '10', offset: '20' });
- */
-function parsePagination(query) {
-    /**
-     * Read query values in the pagination parameter order.
-     * @returns {Array<*>} Limit and offset query values
-     * @example ['10', '20']
-     */
-    const values = ['limit', 'offset'].map((name) => query[name]);
-    const [limitValue, offsetValue] = values;
-    /**
-     * Check whether a value is a safe non-negative integer string.
-     * @param {*} value - Query value to check
-     * @returns {boolean} Whether the value is a safe integer
-     * @example isValidInteger('10'); // true
-     */
-    const isValidInteger = (value) =>
-        typeof value === 'string' && /^\d+$/.test(value) && Number.isSafeInteger(Number(value));
-
-    if (
-        limitValue !== undefined &&
-        (!isValidInteger(limitValue) || Number(limitValue) < 1 || Number(limitValue) > MAX_PAGE_LIMIT)
-    ) {
-        throw new BadRequestError(`limit must be an integer between 1 and ${MAX_PAGE_LIMIT}`);
-    }
-    if (offsetValue !== undefined && (!isValidInteger(offsetValue) || Number(offsetValue) < 0)) {
-        throw new BadRequestError('offset must be a non-negative integer');
-    }
-
-    return {
-        limit: limitValue === undefined ? DEFAULT_PAGE_LIMIT : Number(limitValue),
-        offset: offsetValue === undefined ? 0 : Number(offsetValue),
-    };
-}
+import { parsePagination, parseSearchQuery, validateNoteBody } from '../validation/request-validation.js';
 
 /**
  * Create a router for note-related endpoints
@@ -104,11 +62,7 @@ export function createNotesRouter(noteRepository) {
      */
     router.get('/search', async (req, res, next) => {
         try {
-            const keyword = typeof req.query.q === 'string' ? req.query.q.trim() : '';
-            if (!keyword) {
-                throw new BadRequestError('Search query is required');
-            }
-
+            const keyword = parseSearchQuery(req.query);
             const notes = await noteRepository.search(keyword);
             res.json(notes.map((note) => note.toObject()));
         } catch (error) {
@@ -298,15 +252,7 @@ export function createNotesRouter(noteRepository) {
      */
     router.post('/', async (req, res, next) => {
         try {
-            // Validate request body
-            if (!req.body.title || !req.body.content) {
-                throw new BadRequestError('Title and content are required');
-            }
-
-            const note = await noteRepository.create({
-                title: req.body.title,
-                content: req.body.content,
-            });
+            const note = await noteRepository.create(validateNoteBody(req.body));
 
             res.status(201).json(note.toObject());
         } catch (error) {
@@ -349,15 +295,7 @@ export function createNotesRouter(noteRepository) {
      */
     router.put('/:id', async (req, res, next) => {
         try {
-            // Validate request body
-            if (!req.body.title || !req.body.content) {
-                throw new BadRequestError('Title and content are required');
-            }
-
-            const note = await noteRepository.update(req.params.id, {
-                title: req.body.title,
-                content: req.body.content,
-            });
+            const note = await noteRepository.update(req.params.id, validateNoteBody(req.body));
 
             if (!note) {
                 throw new NotFoundError('Note not found');

@@ -400,6 +400,21 @@ describe('Notes Routes', () => {
             expect(response.body.error).toBe('Title and content are required');
         });
 
+        test.each([
+            { title: 123, content: 'Content' },
+            { title: 'Title', content: null },
+            { title: '   ', content: 'Content' },
+            { title: 'a'.repeat(201), content: 'Content' },
+        ])('should reject schema-invalid note data: %o', async (noteData) => {
+            const create = jest.spyOn(repository, 'create');
+
+            const response = await request(app).post('/api/notes').send(noteData);
+
+            expect(response.status).toBe(400);
+            expect(response.body.error).toEqual(expect.any(String));
+            expect(create).not.toHaveBeenCalled();
+        });
+
         test('should handle repository errors', async () => {
             repository.create = async () => {
                 throw new Error('Database error');
@@ -451,6 +466,17 @@ describe('Notes Routes', () => {
 
             expect(response.status).toBe(400);
             expect(response.body.error).toBe('Title and content are required');
+        });
+
+        test('should reject schema-invalid update data before repository access', async () => {
+            const note = await repository.create({ title: 'Original', content: 'Original' });
+            const update = jest.spyOn(repository, 'update');
+
+            const response = await request(app).put(`/api/notes/${note.id}`).send({ title: 'Title', content: 42 });
+
+            expect(response.status).toBe(400);
+            expect(response.body.error).toBe('content must be a non-empty string');
+            expect(update).not.toHaveBeenCalled();
         });
 
         test('should return 400 if content is missing', async () => {
