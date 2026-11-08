@@ -57,8 +57,11 @@ export function createNotesRouter(noteRepository) {
      * @description Search active notes by title or content
      * @route GET /search?q=keyword
      * @returns {Object[]} 200 - Array of matching active note objects
-     * @returns {Object} 400 - Missing or blank search query
+     * @returns {Object} 400 - Missing, blank, or over-limit search query
      * @returns {Object} 500 - Error response
+     * @example
+     * // The query is trimmed and must contain at most 200 characters.
+     * fetch('/api/notes/search?q=project');
      */
     router.get('/search', async (req, res, next) => {
         try {

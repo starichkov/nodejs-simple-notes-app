@@ -289,9 +289,9 @@ The response uses a pagination envelope:
 GET /api/notes/search?q=keyword
 ```
 
-Search is case-insensitive and matches a substring in either the note title or content. Deleted notes are not included. The `q` query parameter is required and must not be blank.
+Search is case-insensitive and matches a substring in either the note title or content. Deleted notes are not included. The `q` query parameter is required, is trimmed, must not be blank, and may contain at most 200 characters.
 
-Missing or blank queries return `400`:
+Missing, blank, or over-limit queries return `400`:
 ```json
 {
   "error": "Search query is required"
