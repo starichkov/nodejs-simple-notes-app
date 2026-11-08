@@ -27,7 +27,7 @@ Key characteristics:
 ## Prerequisites
 - Node.js: 22.x, 24.x or 26.x (as enforced by package.json engines)
 - npm: 10+
-- One database backend available locally (CouchDB ≥3.5.2.1 or MongoDB ≥9.0), or use Docker Compose
+- One database backend available locally (CouchDB ≥3.5.3 or MongoDB ≥9.0), or use Docker Compose
 
 ## Local Development
 1) Clone and install
