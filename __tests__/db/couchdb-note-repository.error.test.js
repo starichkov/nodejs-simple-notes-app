@@ -282,11 +282,14 @@ describe('CouchDbNoteRepository Error Scenarios', () => {
 
     describe('Query Error Scenarios', () => {
         test('should search active notes by title or content case-insensitively', async () => {
-            repository.findAll = jest.fn().mockResolvedValue([
-                { title: 'Project Plan', content: 'Review milestones' },
-                { title: 'Shopping List', content: 'Buy project supplies' },
-                { title: 'Unrelated Note', content: 'Nothing relevant' },
-            ]);
+            repository.findAll = jest.fn().mockResolvedValue({
+                notes: [
+                    { title: 'Project Plan', content: 'Review milestones' },
+                    { title: 'Shopping List', content: 'Buy project supplies' },
+                    { title: 'Unrelated Note', content: 'Nothing relevant' },
+                ],
+                total: 3,
+            });
 
             const result = await repository.search('PROJECT');
 
@@ -499,7 +502,12 @@ describe('CouchDbNoteRepository Error Scenarios', () => {
             repository.db = mockDb;
 
             const result = await repository.findAll();
-            expect(result).toEqual([]);
+            expect(result).toEqual({ notes: [], total: 0 });
+            expect(mockDb.view).toHaveBeenCalledWith('notes', 'active', {
+                update: true,
+                include_docs: true,
+                descending: true,
+            });
         });
 
         test('should handle rows without documents in findAll', async () => {
@@ -525,8 +533,8 @@ describe('CouchDbNoteRepository Error Scenarios', () => {
             repository.db = mockDb;
 
             const result = await repository.findAll();
-            expect(result).toHaveLength(1);
-            expect(result[0].title).toBe('Valid Note');
+            expect(result.notes).toHaveLength(1);
+            expect(result.notes[0].title).toBe('Valid Note');
         });
 
         test('should handle _mapResult with null results', () => {

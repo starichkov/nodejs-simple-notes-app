@@ -20,7 +20,7 @@ class MockNoteRepository {
         if (this.shouldThrowError) {
             throw new Error('Database error');
         }
-        return [];
+        return { notes: [], total: 0 };
     }
 
     async findById(id) {
@@ -311,7 +311,10 @@ describe('Server Integration Tests', () => {
             const response = await request(app).get('/api/notes');
 
             expect(response.status).toBe(200);
-            expect(Array.isArray(response.body)).toBe(true);
+            expect(response.body).toEqual({
+                data: [],
+                pagination: { limit: 20, offset: 0, total: 0, hasNext: false },
+            });
         });
 
         test('should handle GET /api/notes/:id', async () => {

@@ -88,7 +88,7 @@ describe('NoteRepository Abstract Interface Tests', () => {
         });
 
         test('should have correct method arities', () => {
-            expect(repository.findAll.length).toBe(0);
+            expect(repository.findAll.length).toBe(1);
             expect(repository.search.length).toBe(1);
             expect(repository.findDeleted.length).toBe(0);
             expect(repository.findAllIncludingDeleted.length).toBe(0);

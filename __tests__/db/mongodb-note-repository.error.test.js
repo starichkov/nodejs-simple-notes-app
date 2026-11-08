@@ -73,6 +73,34 @@ describe('MongoDbNoteRepository Error Handling Tests', () => {
         });
 
         describe('findAll() error handling', () => {
+            test('should count and retrieve a bounded active-note page', async () => {
+                const documents = [
+                    {
+                        _id: { toString: () => 'note-1' },
+                        title: 'Page Note',
+                        content: 'Content',
+                        deletedAt: null,
+                        createdAt: new Date('2024-01-01'),
+                        updatedAt: new Date('2024-01-02'),
+                    },
+                ];
+                const limit = jest.fn().mockResolvedValue(documents);
+                const skip = jest.fn().mockReturnValue({ limit });
+                const sort = jest.fn().mockReturnValue({ skip });
+                repository.NoteModel.countDocuments.mockResolvedValue(3);
+                repository.NoteModel.find.mockReturnValue({ sort });
+
+                const result = await repository.findAll({ limit: 1, offset: 1 });
+
+                expect(repository.NoteModel.countDocuments).toHaveBeenCalledWith({ deletedAt: null });
+                expect(repository.NoteModel.find).toHaveBeenCalledWith({ deletedAt: null });
+                expect(sort).toHaveBeenCalledWith({ updatedAt: -1, _id: -1 });
+                expect(skip).toHaveBeenCalledWith(1);
+                expect(limit).toHaveBeenCalledWith(1);
+                expect(result.total).toBe(3);
+                expect(result.notes[0]).toMatchObject({ id: 'note-1', title: 'Page Note' });
+            });
+
             test('should handle database query errors in findAll', async () => {
                 repository.NoteModel.find = jest.fn().mockImplementation(() => {
                     throw new Error('Database query failed');
@@ -89,6 +117,17 @@ describe('MongoDbNoteRepository Error Handling Tests', () => {
 
                 await expect(repository.findAll()).rejects.toThrow('Network error');
                 expect(console.error).toHaveBeenCalledWith('Failed to find all active notes:', expect.any(Error));
+            });
+
+            test('should handle count errors in findAll', async () => {
+                const error = new Error('Count query failed');
+                repository.NoteModel.countDocuments.mockRejectedValue(error);
+                const limit = jest.fn().mockResolvedValue([]);
+                const skip = jest.fn().mockReturnValue({ limit });
+                repository.NoteModel.find.mockReturnValue({ sort: jest.fn().mockReturnValue({ skip }) });
+
+                await expect(repository.findAll({ limit: 10, offset: 0 })).rejects.toBe(error);
+                expect(console.error).toHaveBeenCalledWith('Failed to find all active notes:', error);
             });
         });
 

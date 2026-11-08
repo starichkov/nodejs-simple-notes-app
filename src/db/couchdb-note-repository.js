@@ -61,7 +61,7 @@ export class CouchDbNoteRepository extends NoteRepository {
                         map: "function(doc) { if (doc.type === 'note') { emit(doc._id, null); } }",
                     },
                     active: {
-                        map: "function(doc) { if (doc.type === 'note' && doc.deletedAt === null) { emit(doc.updatedAt, null); } }",
+                        map: "function(doc) { if (doc.type === 'note' && doc.deletedAt === null) { emit([doc.updatedAt, doc._id], null); } }",
                     },
                     deleted: {
                         map: "function(doc) { if (doc.type === 'note' && doc.deletedAt !== null) { emit(doc.deletedAt, null); } }",
@@ -74,7 +74,11 @@ export class CouchDbNoteRepository extends NoteRepository {
                 const existingDoc = await this.db.get('_design/notes');
                 // Check if the existing design doc has all the required views
                 const hasAllViews =
-                    existingDoc.views && existingDoc.views.all && existingDoc.views.active && existingDoc.views.deleted;
+                    existingDoc.views &&
+                    existingDoc.views.all &&
+                    existingDoc.views.active &&
+                    existingDoc.views.deleted &&
+                    existingDoc.views.active.map === expectedDesignDoc.views.active.map;
 
                 if (!hasAllViews) {
                     // Update the existing design doc with all views
@@ -98,44 +102,29 @@ export class CouchDbNoteRepository extends NoteRepository {
     }
 
     /**
-     * Find all active notes (not deleted)
-     * @returns {Promise<Note[]>} Promise resolving to an array of active Note objects
+     * Find a page of active notes (not deleted)
+     * @param {Object} options - Optional pagination options
+     * @param {number} [options.limit] - Maximum number of notes to return
+     * @param {number} [options.offset] - Number of notes to skip
+     * @returns {Promise<{notes: Note[], total: number}>} Page of active notes and total count
      * @throws {Error} When database query fails or CouchDB is unreachable
      * @example
-     * const activeNotes = await repository.findAll();
-     * console.log(`Found ${activeNotes.length} active notes`);
+     * const { notes, total } = await repository.findAll({ limit: 20, offset: 0 });
+     * console.log(`Found ${notes.length} of ${total} active notes`);
      */
-    async findAll() {
+    async findAll(options = {}) {
         try {
-            const result = await this.db.view('notes', 'active', {
+            const query = {
                 update: true,
                 include_docs: true,
                 descending: true, // Sort by date descending (newest first)
-            });
+            };
+            if (options.offset !== undefined) query.skip = options.offset;
+            if (options.limit !== undefined) query.limit = options.limit;
 
-            if (!result.rows) {
-                console.log('No rows in view result, returning empty array');
-                return [];
-            }
-
-            const notes = result.rows
-                .map((row) => {
-                    if (!row.doc) {
-                        console.log('Row without doc:', row);
-                        return null;
-                    }
-                    const doc = row.doc;
-                    return Note.fromObject({
-                        id: doc._id,
-                        title: doc.title,
-                        content: doc.content,
-                        deletedAt: doc.deletedAt,
-                        createdAt: new Date(doc.createdAt),
-                        updatedAt: new Date(doc.updatedAt),
-                    });
-                })
-                .filter((note) => note !== null);
-            return notes;
+            const result = await this.db.view('notes', 'active', query);
+            const notes = this._mapResult(result);
+            return { notes, total: result?.total_rows ?? notes.length };
         } catch (error) {
             console.error('Failed to find all active notes:', error);
             throw error;
@@ -151,7 +140,7 @@ export class CouchDbNoteRepository extends NoteRepository {
     async search(keyword) {
         try {
             const normalizedKeyword = keyword.toLocaleLowerCase();
-            const notes = await this.findAll();
+            const { notes } = await this.findAll();
             return notes.filter(
                 (note) =>
                     note.title.toLocaleLowerCase().includes(normalizedKeyword) ||

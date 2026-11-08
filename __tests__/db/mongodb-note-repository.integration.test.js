@@ -164,9 +164,29 @@ describe('MongoDbNoteRepository Integration Tests', () => {
             const allNotes = await repository.findAll();
             console.log('All notes found:', allNotes);
 
-            expect(allNotes).toHaveLength(3);
-            expect(allNotes.every((note) => note instanceof Note)).toBe(true);
-            expect(allNotes.map((note) => note.title)).toEqual(expect.arrayContaining(notes.map((note) => note.title)));
+            expect(allNotes.notes).toHaveLength(3);
+            expect(allNotes.total).toBe(3);
+            expect(allNotes.notes.every((note) => note instanceof Note)).toBe(true);
+            expect(allNotes.notes.map((note) => note.title)).toEqual(
+                expect.arrayContaining(notes.map((note) => note.title)),
+            );
+        });
+
+        it('should paginate active notes and exclude deleted notes', async () => {
+            const first = await repository.create({ title: 'First', content: 'Content' });
+            const second = await repository.create({ title: 'Second', content: 'Content' });
+            const deleted = await repository.create({ title: 'Deleted', content: 'Content' });
+            await repository.moveToRecycleBin(deleted.id);
+
+            const firstPage = await repository.findAll({ limit: 1, offset: 0 });
+            const secondPage = await repository.findAll({ limit: 1, offset: 1 });
+
+            expect(firstPage.total).toBe(2);
+            expect(firstPage.notes).toHaveLength(1);
+            expect(secondPage.total).toBe(2);
+            expect(secondPage.notes).toHaveLength(1);
+            expect(new Set([firstPage.notes[0].id, secondPage.notes[0].id])).toEqual(new Set([first.id, second.id]));
+            expect(firstPage.notes[0].id).not.toBe(deleted.id);
         });
     });
 
@@ -314,7 +334,7 @@ describe('MongoDbNoteRepository Integration Tests', () => {
 
             // Verify it's not in active notes
             const activeNotes = await repository.findAll();
-            expect(activeNotes.every((n) => n.id !== note.id)).toBe(true);
+            expect(activeNotes.notes.every((n) => n.id !== note.id)).toBe(true);
         });
 
         it('should restore all notes from recycle bin', async () => {
@@ -346,10 +366,10 @@ describe('MongoDbNoteRepository Integration Tests', () => {
 
             // Verify all notes are now active
             const activeNotes = await repository.findAll();
-            expect(activeNotes.length).toBe(3);
-            expect(activeNotes.some((n) => n.id === note1.id)).toBe(true);
-            expect(activeNotes.some((n) => n.id === note2.id)).toBe(true);
-            expect(activeNotes.some((n) => n.id === note3.id)).toBe(true);
+            expect(activeNotes.notes.length).toBe(3);
+            expect(activeNotes.notes.some((n) => n.id === note1.id)).toBe(true);
+            expect(activeNotes.notes.some((n) => n.id === note2.id)).toBe(true);
+            expect(activeNotes.notes.some((n) => n.id === note3.id)).toBe(true);
 
             // Verify recycle bin is empty
             deletedNotes = await repository.findDeleted();
@@ -378,7 +398,7 @@ describe('MongoDbNoteRepository Integration Tests', () => {
 
             // Verify it's in active notes
             const activeNotes = await repository.findAll();
-            expect(activeNotes.some((n) => n.id === note.id)).toBe(true);
+            expect(activeNotes.notes.some((n) => n.id === note.id)).toBe(true);
 
             // Verify it's not in deleted notes
             const deletedNotes = await repository.findDeleted();
@@ -523,8 +543,8 @@ describe('MongoDbNoteRepository Integration Tests', () => {
 
             // Verify active note still exists
             const activeNotes = await repository.findAll();
-            expect(activeNotes.length).toBe(1);
-            expect(activeNotes[0].id).toBe(note3.id);
+            expect(activeNotes.notes.length).toBe(1);
+            expect(activeNotes.notes[0].id).toBe(note3.id);
 
             // Verify count is 0
             const count = await repository.countDeleted();

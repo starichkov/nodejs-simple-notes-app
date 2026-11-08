@@ -4,10 +4,11 @@
  */
 export class NoteRepository {
     /**
-     * Find all active notes (not deleted)
-     * @returns {Promise<Array>} Promise resolving to an array of active Note objects
+     * Find a page of active notes (not deleted)
+     * @param {{limit: number, offset: number}} options - Pagination options
+     * @returns {Promise<{notes: Array, total: number}>} Page of active Note objects and total count
      */
-    async findAll() {
+    async findAll(options) {
         throw new Error('Method not implemented');
     }
 

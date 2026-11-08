@@ -253,9 +253,35 @@ Once the server is running, you can:
 
 ## API Endpoints
 
-### Get all active notes
+### Get active notes
 ```
-GET /api/notes
+GET /api/notes?limit=20&offset=0
+```
+
+Returns active notes ordered by newest `updatedAt` first, with note ID as a deterministic tie-breaker. `limit` and `offset` are optional: `limit` defaults to `20` and may not exceed `100`, while `offset` defaults to `0`.
+
+Both parameters must be decimal integers. `limit` must be positive and `offset` must be non-negative. Invalid, negative, zero, fractional, or over-limit values return `400` without querying the repository.
+
+The response uses a pagination envelope:
+```json
+{
+  "data": [
+    {
+      "id": "note_123",
+      "title": "Sample Note",
+      "content": "Note content",
+      "deletedAt": null,
+      "createdAt": "2023-01-01T00:00:00.000Z",
+      "updatedAt": "2023-01-02T00:00:00.000Z"
+    }
+  ],
+  "pagination": {
+    "limit": 20,
+    "offset": 0,
+    "total": 1,
+    "hasNext": false
+  }
+}
 ```
 
 ### Search active notes

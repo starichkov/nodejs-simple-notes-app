@@ -2,6 +2,31 @@ import express from 'express';
 import { BadRequestError, InternalServerError, NotFoundError } from '../errors/app-error.js';
 import { errorHandler } from '../middleware/error-handler.js';
 
+const DEFAULT_PAGE_LIMIT = 20;
+const MAX_PAGE_LIMIT = 100;
+
+function parsePagination(query) {
+    const values = ['limit', 'offset'].map((name) => query[name]);
+    const [limitValue, offsetValue] = values;
+    const isValidInteger = (value) =>
+        typeof value === 'string' && /^\d+$/.test(value) && Number.isSafeInteger(Number(value));
+
+    if (
+        limitValue !== undefined &&
+        (!isValidInteger(limitValue) || Number(limitValue) < 1 || Number(limitValue) > MAX_PAGE_LIMIT)
+    ) {
+        throw new BadRequestError(`limit must be an integer between 1 and ${MAX_PAGE_LIMIT}`);
+    }
+    if (offsetValue !== undefined && (!isValidInteger(offsetValue) || Number(offsetValue) < 0)) {
+        throw new BadRequestError('offset must be a non-negative integer');
+    }
+
+    return {
+        limit: limitValue === undefined ? DEFAULT_PAGE_LIMIT : Number(limitValue),
+        offset: offsetValue === undefined ? 0 : Number(offsetValue),
+    };
+}
+
 /**
  * Create a router for note-related endpoints
  * @param {NoteRepository} noteRepository - Repository for note operations (CouchDB or MongoDB implementation)
@@ -19,29 +44,35 @@ export function createNotesRouter(noteRepository) {
 
     /**
      * @name GET /notes
-     * @description Retrieve all active notes from the database
-     * @route GET /
-     * @returns {Object[]} 200 - Array of active note objects
+     * @description Retrieve a page of active notes from the database
+     * @route GET /?limit=20&offset=0
+     * @returns {Object} 200 - Active notes and pagination metadata
+     * @returns {Object[]} 200.data - Array of active note objects
+     * @returns {Object} 400 - Invalid pagination parameters
      * @returns {Object} 500 - Error response
      * @example
-     * // Response format:
-     * [
-     *   {
-     *     "id": "note_123",
-     *     "title": "Sample Note",
-     *     "content": "This is a sample note content",
-     *     "deletedAt": null,
-     *     "createdAt": "2023-01-01T00:00:00.000Z",
-     *     "updatedAt": "2023-01-02T00:00:00.000Z"
-     *   }
-     * ]
+     * // Optional parameters: limit (default 20, maximum 100), offset (default 0).
+     * // Both values must be integers; limit must be positive and offset non-negative.
+     * // Response format: { data: [], pagination: { limit, offset, total, hasNext } }
      */
     router.get('/', async (req, res, next) => {
         try {
-            const notes = await noteRepository.findAll();
-            res.json(notes.map((note) => note.toObject()));
+            const pagination = parsePagination(req.query);
+            const result = await noteRepository.findAll(pagination);
+            res.json({
+                data: result.notes.map((note) => note.toObject()),
+                pagination: {
+                    ...pagination,
+                    total: result.total,
+                    hasNext: pagination.offset + pagination.limit < result.total,
+                },
+            });
         } catch (error) {
-            next(new InternalServerError('Failed to retrieve notes', { cause: error }));
+            next(
+                error instanceof BadRequestError
+                    ? error
+                    : new InternalServerError('Failed to retrieve notes', { cause: error }),
+            );
         }
     });
 

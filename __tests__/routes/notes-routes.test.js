@@ -1,5 +1,6 @@
 import express from 'express';
 import request from 'supertest';
+import { jest } from '@jest/globals';
 import { createNotesRouter } from '../../src/routes/notes-routes.js';
 import { Note } from '../../src/models/note.js';
 
@@ -10,8 +11,9 @@ class MockNoteRepository {
         this.nextId = 1;
     }
 
-    async findAll() {
-        return this.notes.filter((note) => note.deletedAt === null);
+    async findAll({ limit = 20, offset = 0 } = {}) {
+        const notes = this.notes.filter((note) => note.deletedAt === null);
+        return { notes: notes.slice(offset, offset + limit), total: notes.length };
     }
 
     async search(keyword) {
@@ -128,11 +130,14 @@ describe('Notes Routes', () => {
     });
 
     describe('GET /api/notes', () => {
-        test('should return empty array when no notes exist', async () => {
+        test('should return an empty page when no notes exist', async () => {
             const response = await request(app).get('/api/notes');
 
             expect(response.status).toBe(200);
-            expect(response.body).toEqual([]);
+            expect(response.body).toEqual({
+                data: [],
+                pagination: { limit: 20, offset: 0, total: 0, hasNext: false },
+            });
         });
 
         test('should return only active notes', async () => {
@@ -145,11 +150,57 @@ describe('Notes Routes', () => {
             const response = await request(app).get('/api/notes');
 
             expect(response.status).toBe(200);
-            expect(response.body.length).toBe(2);
-            expect(response.body[0].title).toBe('Active Note 1');
-            expect(response.body[0].deletedAt).toBeNull();
-            expect(response.body[1].title).toBe('Active Note 2');
-            expect(response.body[1].deletedAt).toBeNull();
+            expect(response.body.data).toHaveLength(2);
+            expect(response.body.data[0].title).toBe('Active Note 1');
+            expect(response.body.data[0].deletedAt).toBeNull();
+            expect(response.body.data[1].title).toBe('Active Note 2');
+            expect(response.body.data[1].deletedAt).toBeNull();
+            expect(response.body.pagination).toEqual({ limit: 20, offset: 0, total: 2, hasNext: false });
+        });
+
+        test('should return the requested page and navigation metadata', async () => {
+            await repository.create({ title: 'Note 1', content: 'Content 1' });
+            await repository.create({ title: 'Note 2', content: 'Content 2' });
+            await repository.create({ title: 'Note 3', content: 'Content 3' });
+
+            const response = await request(app).get('/api/notes?limit=2&offset=0');
+
+            expect(response.status).toBe(200);
+            expect(response.body.data.map((note) => note.title)).toEqual(['Note 1', 'Note 2']);
+            expect(response.body.pagination).toEqual({ limit: 2, offset: 0, total: 3, hasNext: true });
+        });
+
+        test('should return an empty page when offset is beyond the total', async () => {
+            await repository.create({ title: 'Note 1', content: 'Content 1' });
+
+            const response = await request(app).get('/api/notes?limit=2&offset=5');
+
+            expect(response.status).toBe(200);
+            expect(response.body).toEqual({
+                data: [],
+                pagination: { limit: 2, offset: 5, total: 1, hasNext: false },
+            });
+        });
+
+        test.each([
+            'limit=0',
+            'limit=-1',
+            'limit=1.5',
+            'limit=101',
+            'offset=-1',
+            'offset=1.5',
+            'limit=abc',
+            'offset=abc',
+            'limit=999999999999999999999',
+            'offset=999999999999999999999',
+        ])('should reject invalid pagination query: %s', async (query) => {
+            const findAll = jest.spyOn(repository, 'findAll');
+
+            const response = await request(app).get(`/api/notes?${query}`);
+
+            expect(response.status).toBe(400);
+            expect(response.body).toEqual({ error: expect.any(String) });
+            expect(findAll).not.toHaveBeenCalled();
         });
 
         test('should handle repository errors', async () => {
@@ -589,8 +640,8 @@ describe('Notes Routes', () => {
 
             // Verify active note still exists
             const activeNotes = await repository.findAll();
-            expect(activeNotes.length).toBe(1);
-            expect(activeNotes[0].id).toBe(note3.id);
+            expect(activeNotes.notes.length).toBe(1);
+            expect(activeNotes.notes[0].id).toBe(note3.id);
         });
 
         test('should return zero when recycle bin is already empty', async () => {
@@ -634,7 +685,7 @@ describe('Notes Routes', () => {
 
             // Verify all notes are now active
             const activeNotes = await repository.findAll();
-            expect(activeNotes.length).toBe(3);
+            expect(activeNotes.notes.length).toBe(3);
 
             // Verify recycle bin is empty
             const deletedNotes = await repository.findDeleted();

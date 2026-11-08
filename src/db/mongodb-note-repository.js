@@ -75,17 +75,26 @@ export class MongoDbNoteRepository extends NoteRepository {
     }
 
     /**
-     * Find all active notes (not deleted)
-     * @returns {Promise<Note[]>} Promise resolving to an array of active Note objects
+     * Find a page of active notes (not deleted)
+     * @param {Object} options - Optional pagination options
+     * @param {number} [options.limit] - Maximum number of notes to return
+     * @param {number} [options.offset] - Number of notes to skip
+     * @returns {Promise<{notes: Note[], total: number}>} Page of active notes and total count
      * @throws {Error} When database query fails or MongoDB is unreachable
      * @example
-     * const activeNotes = await repository.findAll();
-     * console.log(`Found ${activeNotes.length} active notes`);
+     * const { notes, total } = await repository.findAll({ limit: 20, offset: 0 });
+     * console.log(`Found ${notes.length} of ${total} active notes`);
      */
-    async findAll() {
+    async findAll(options = {}) {
         try {
-            const notes = await this.NoteModel.find({ deletedAt: null }).sort({ updatedAt: -1 });
-            return notes.map((doc) =>
+            const filter = { deletedAt: null };
+            const countPromise = this.NoteModel.countDocuments(filter);
+            let query = this.NoteModel.find(filter).sort({ updatedAt: -1, _id: -1 });
+            if (options.offset !== undefined) query = query.skip(options.offset);
+            if (options.limit !== undefined) query = query.limit(options.limit);
+
+            const [total, documents] = await Promise.all([countPromise, query]);
+            const notes = documents.map((doc) =>
                 Note.fromObject({
                     id: doc._id.toString(),
                     title: doc.title,
@@ -95,6 +104,7 @@ export class MongoDbNoteRepository extends NoteRepository {
                     updatedAt: doc.updatedAt,
                 }),
             );
+            return { notes, total };
         } catch (error) {
             log.error('Failed to find all active notes:', error);
             throw error;
