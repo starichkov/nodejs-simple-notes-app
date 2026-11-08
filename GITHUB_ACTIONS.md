@@ -97,7 +97,7 @@ Deploy (GitHub Pages - main branch pushes only)
 - ✅ **30-day artifact retention** for generated `docs/`
 
 #### Quality Validation
-- ✅ **Documentation coverage analysis** (80% overall function/class threshold)
+- ✅ **Documentation coverage analysis** (95% overall function/class threshold)
 - ✅ **Broken link detection** with linkinator
 - ✅ **Function/class documentation reporting** and required-tag checks
 
@@ -281,7 +281,7 @@ linkinator docs/ --recurse --silent --skip "https://www.linkedin.com/in/vadim-st
 
 ### Documentation Pipeline
 - ✅ **Documentation generates successfully** from JSDoc comments
-- ✅ **Quality checks pass** (80% coverage threshold)
+- ✅ **Quality checks pass** (95% coverage threshold)
 - ✅ **No broken links** in generated documentation
 - ✅ **GitHub Pages deployment succeeds** (main branch only)
 - ✅ **Documentation is publicly accessible** and up-to-date
@@ -377,7 +377,7 @@ The test workflow covers Node.js 22, 24, and 26. The documentation workflow uses
     */
    ```
 
-5. **Check documentation coverage** before pushing - aim for 80%+
+5. **Check documentation coverage** before pushing - aim for 95%+
 
 ### For Maintainers
 

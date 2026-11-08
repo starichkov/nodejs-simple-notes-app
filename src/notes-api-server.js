@@ -297,6 +297,11 @@ export const initializeApp = (noteRepository = null) => globalNotesServer.initia
 export const startServer = () => globalNotesServer.startServer();
 
 // Exported entrypoint function for testability and CLI usage
+/**
+ * Initialize and start the global Notes API server.
+ * @returns {Promise<void>} Promise that settles after startup handling
+ * @example await mainEntry();
+ */
 export async function mainEntry() {
     const notesServer = new NotesServer();
     try {

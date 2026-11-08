@@ -231,7 +231,7 @@ function generateReport(results) {
     console.log(`🎯 Overall Documentation Score: ${overallScore}%`);
 
     // Exit with error if coverage is below threshold
-    const threshold = 80;
+    const threshold = 95;
     if (overallScore < threshold) {
         console.log(`❌ Documentation coverage below ${threshold}% threshold`);
         process.exit(1);

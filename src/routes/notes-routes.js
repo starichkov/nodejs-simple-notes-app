@@ -5,9 +5,27 @@ import { errorHandler } from '../middleware/error-handler.js';
 const DEFAULT_PAGE_LIMIT = 20;
 const MAX_PAGE_LIMIT = 100;
 
+/**
+ * Parse and validate active-note pagination query parameters.
+ * @param {object} query - Express query parameters
+ * @returns {{limit: number, offset: number}} Normalized pagination options
+ * @throws {BadRequestError} When a value is malformed or out of range
+ * @example parsePagination({ limit: '10', offset: '20' });
+ */
 function parsePagination(query) {
+    /**
+     * Read query values in the pagination parameter order.
+     * @returns {Array<*>} Limit and offset query values
+     * @example ['10', '20']
+     */
     const values = ['limit', 'offset'].map((name) => query[name]);
     const [limitValue, offsetValue] = values;
+    /**
+     * Check whether a value is a safe non-negative integer string.
+     * @param {*} value - Query value to check
+     * @returns {boolean} Whether the value is a safe integer
+     * @example isValidInteger('10'); // true
+     */
     const isValidInteger = (value) =>
         typeof value === 'string' && /^\d+$/.test(value) && Number.isSafeInteger(Number(value));
 

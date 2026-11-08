@@ -17,20 +17,39 @@ const LEVELS = {
     fatal: 60,
 };
 
+/**
+ * Normalize a log level name.
+ * @param {string} level - Candidate log level
+ * @returns {string|null} Normalized level or null when invalid
+ * @example normalizeLevel('INFO'); // 'info'
+ */
 function normalizeLevel(level) {
     if (!level) return null;
     const l = String(level).toLowerCase();
     return LEVELS[l] ? l : null;
 }
 
+/**
+ * Get the default log level.
+ * @returns {string} Default log level name
+ * @example defaultLevel(); // 'info'
+ */
 function defaultLevel() {
     return 'info';
 }
 
+/**
+ * Resolve the configured log level from the environment.
+ * @returns {string} Effective log level name
+ * @example getEnvLevel(); // 'info'
+ */
 function getEnvLevel() {
     return normalizeLevel(process.env.LOG_LEVEL) || defaultLevel();
 }
 
+/**
+ * Logger that supports levels and optional component context.
+ */
 class Logger {
     constructor(component = null, level = getEnvLevel()) {
         this.component = component;
@@ -105,6 +124,13 @@ class Logger {
 }
 
 export const logger = new Logger();
+
+/**
+ * Create a logger with an optional component name.
+ * @param {string} component - Component context for log messages
+ * @returns {Logger} Configured logger instance
+ * @example const log = createLogger('NotesApi');
+ */
 export function createLogger(component) {
     return new Logger(component, logger.level);
 }

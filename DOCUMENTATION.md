@@ -236,7 +236,7 @@ node scripts/check-docs-coverage.js
 - **🎯 Overall Score**: Combined documentation score
 
 #### Coverage Thresholds
-- **Minimum threshold**: 80% documentation coverage
+- **Minimum threshold**: 95% documentation coverage
 - **CI/CD enforcement**: Builds fail below threshold
 - **Quality gates**: Link checking and syntax validation
 
@@ -245,7 +245,7 @@ node scripts/check-docs-coverage.js
 📊 Documentation Coverage Report
 =====================================
 
-📊 Functions: 12/15 (80.0%)
+📊 Functions: 15/15 (100.0%)
 📊 Classes: 4/4 (100.0%)
 
 ✅ All functions and classes are documented!
@@ -253,8 +253,8 @@ node scripts/check-docs-coverage.js
 ⚠️ Documentation Quality Issues:
    src/routes/notes-routes.js:45 - Missing: @example
 
-🎯 Overall Documentation Score: 87.5%
-✅ Documentation coverage meets 80% threshold
+🎯 Overall Documentation Score: 100.0%
+✅ Documentation coverage meets 95% threshold
 ```
 
 ## Configuration

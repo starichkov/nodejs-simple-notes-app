@@ -24,6 +24,12 @@ export function errorHandler(error, req, res, next) {
     res.status(apiError.statusCode).json({ error: apiError.message });
 }
 
+/**
+ * Convert an unknown error into an API-safe application error.
+ * @param {Error} error - Error to translate
+ * @returns {AppError} Safe application error
+ * @example toAppError(new SyntaxError()); // InternalServerError
+ */
 function toAppError(error) {
     if (error instanceof AppError) {
         return error;
