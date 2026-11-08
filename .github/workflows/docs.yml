@@ -62,8 +62,10 @@ jobs:
         run: |
           # Install link checker
           npm install -g linkinator
-          # Check generated documentation, skipping LinkedIn which often returns 429
-          linkinator docs/ --recurse --silent --skip "https://www.linkedin.com/in/vadim-starichkov/"
+          # Check generated documentation, skipping external endpoints that do not provide stable crawler responses
+          linkinator docs/ --recurse --silent \
+            --skip "https://www.linkedin.com/in/vadim-starichkov/" \
+            --skip "https://img.shields.io/codecov/"
 
       - name: Validate JSDoc coverage
         run: |

@@ -253,7 +253,9 @@ ls -la docs/    # Should contain index.html and other files
 ```bash
 # Test link validation locally
 npm install -g linkinator
-linkinator docs/ --recurse --silent --skip "https://www.linkedin.com/in/vadim-starichkov/"
+linkinator docs/ --recurse --silent \
+  --skip "https://www.linkedin.com/in/vadim-starichkov/" \
+  --skip "https://img.shields.io/codecov/"
 ```
 
 ### Debug Steps
