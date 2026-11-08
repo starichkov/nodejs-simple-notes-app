@@ -1,6 +1,7 @@
+import { jest } from '@jest/globals';
 import express from 'express';
 import request from 'supertest';
-import { BadRequestError, InternalServerError, NotFoundError } from '../../src/errors/app-error.js';
+import { AppError, BadRequestError, InternalServerError, NotFoundError } from '../../src/errors/app-error.js';
 import { errorHandler } from '../../src/middleware/error-handler.js';
 
 function createErrorApp(error) {
@@ -11,6 +12,48 @@ function createErrorApp(error) {
 }
 
 describe('Application errors', () => {
+    test('uses default values for standard application errors', () => {
+        expect(new BadRequestError()).toMatchObject({
+            message: 'Bad request',
+            statusCode: 400,
+            code: 'BAD_REQUEST',
+        });
+        expect(new NotFoundError()).toMatchObject({
+            message: 'Not found',
+            statusCode: 404,
+            code: 'NOT_FOUND',
+        });
+        expect(new InternalServerError()).toMatchObject({
+            message: 'Internal server error',
+            statusCode: 500,
+            code: 'INTERNAL_SERVER_ERROR',
+        });
+    });
+
+    test('preserves application error options and cause', () => {
+        const cause = new Error('root cause');
+        const error = new AppError('Custom failure', 422, 'CUSTOM_FAILURE', { cause });
+
+        expect(error).toMatchObject({
+            message: 'Custom failure',
+            statusCode: 422,
+            code: 'CUSTOM_FAILURE',
+            cause,
+            isOperational: true,
+        });
+    });
+
+    test('uses default options for a base application error', () => {
+        const error = new AppError('Custom failure', 422, 'CUSTOM_FAILURE');
+
+        expect(error).toMatchObject({
+            message: 'Custom failure',
+            statusCode: 422,
+            code: 'CUSTOM_FAILURE',
+            isOperational: true,
+        });
+    });
+
     test('exposes status and stable code for typed errors', () => {
         const error = new NotFoundError('Note not found');
 
@@ -42,5 +85,14 @@ describe('Application errors', () => {
         const error = new InternalServerError('Failed to retrieve notes', { cause });
 
         expect(error.cause).toBe(cause);
+    });
+
+    test('passes errors to next when the response has already started', () => {
+        const error = new Error('headers already sent');
+        const next = jest.fn();
+        const response = { headersSent: true };
+
+        expect(errorHandler(error, {}, response, next)).toBeUndefined();
+        expect(next).toHaveBeenCalledWith(error);
     });
 });

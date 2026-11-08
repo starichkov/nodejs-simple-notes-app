@@ -1,4 +1,5 @@
 import { jest } from '@jest/globals';
+import { CouchDbNoteRepository } from '../../src/db/couchdb-note-repository.js';
 import { NoteRepository } from '../../src/db/note-repository.js';
 import * as apiServer from '../../src/notes-api-server.js';
 
@@ -46,6 +47,22 @@ describe('Extra Coverage Tests', () => {
             };
             const result = await apiServer.initializeApp(mockRepo);
             expect(result.repository).toBe(mockRepo);
+        });
+
+        test('should initialize the default repository through initializeApp', async () => {
+            const originalDbVendor = process.env.DB_VENDOR;
+            const initSpy = jest.spyOn(CouchDbNoteRepository.prototype, 'init').mockResolvedValue();
+            process.env.DB_VENDOR = 'couchdb';
+
+            try {
+                const result = await apiServer.initializeApp();
+
+                expect(result.repository).toBeInstanceOf(CouchDbNoteRepository);
+                expect(initSpy).toHaveBeenCalled();
+            } finally {
+                process.env.DB_VENDOR = originalDbVendor;
+                initSpy.mockRestore();
+            }
         });
 
         test('should export startServer', () => {

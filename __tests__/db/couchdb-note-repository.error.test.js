@@ -460,6 +460,21 @@ describe('CouchDbNoteRepository Error Scenarios', () => {
             await expect(repository.restore('test-id')).rejects.toThrow('Restore failed');
         });
 
+        test('should rethrow non-404 errors while getting a note to restore', async () => {
+            const getError = new Error('Failed to get note for restore');
+            getError.statusCode = 500;
+            const mockDb = {
+                get: jest.fn().mockRejectedValue(getError),
+                insert: jest.fn(),
+            };
+
+            repository.db = mockDb;
+
+            await expect(repository.restore('test-id')).rejects.toThrow('Failed to get note for restore');
+            expect(mockDb.get).toHaveBeenCalledWith('test-id');
+            expect(mockDb.insert).not.toHaveBeenCalled();
+        });
+
         test('should handle permanent delete errors', async () => {
             const existingDoc = {
                 _id: 'test-id',
@@ -476,6 +491,23 @@ describe('CouchDbNoteRepository Error Scenarios', () => {
             repository.db = mockDb;
 
             await expect(repository.permanentDelete('test-id')).rejects.toThrow('Permanent deletion failed');
+        });
+
+        test('should rethrow non-404 errors while getting a note to permanently delete', async () => {
+            const getError = new Error('Failed to get note for permanent deletion');
+            getError.statusCode = 500;
+            const mockDb = {
+                get: jest.fn().mockRejectedValue(getError),
+                destroy: jest.fn(),
+            };
+
+            repository.db = mockDb;
+
+            await expect(repository.permanentDelete('test-id')).rejects.toThrow(
+                'Failed to get note for permanent deletion',
+            );
+            expect(mockDb.get).toHaveBeenCalledWith('test-id');
+            expect(mockDb.destroy).not.toHaveBeenCalled();
         });
 
         test('should handle emptyRecycleBin errors', async () => {

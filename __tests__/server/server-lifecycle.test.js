@@ -347,6 +347,32 @@ describe('NotesServer Lifecycle Tests', () => {
 
             mockListen.mockRestore();
         });
+
+        test('registers graceful shutdown handlers for both termination signals', () => {
+            const listeners = {};
+            const mockListen = jest.spyOn(server.app, 'listen').mockImplementation((port, host, callback) => {
+                if (callback) callback();
+                return mockServer;
+            });
+            const shutdownSpy = jest.spyOn(server, 'gracefulShutdown').mockImplementation(() => {});
+
+            mockOn.mockImplementation((signal, handler) => {
+                listeners[signal] = handler;
+                return process;
+            });
+
+            server.startServer();
+
+            expect(listeners.SIGTERM).toEqual(expect.any(Function));
+            expect(listeners.SIGINT).toEqual(expect.any(Function));
+
+            listeners.SIGTERM();
+            listeners.SIGINT();
+            expect(shutdownSpy).toHaveBeenCalledTimes(2);
+
+            shutdownSpy.mockRestore();
+            mockListen.mockRestore();
+        });
     });
 
     describe('Backward Compatibility', () => {
