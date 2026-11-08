@@ -92,6 +92,50 @@ describe('MongoDbNoteRepository Error Handling Tests', () => {
             });
         });
 
+        describe('search() behavior', () => {
+            test('should build a case-insensitive active-note query and map sorted results', async () => {
+                const sort = jest.fn().mockResolvedValue([
+                    {
+                        _id: { toString: () => 'note-1' },
+                        title: 'Project Plan',
+                        content: 'Review milestones',
+                        deletedAt: null,
+                        createdAt: new Date('2024-01-01'),
+                        updatedAt: new Date('2024-01-02'),
+                    },
+                ]);
+                repository.NoteModel.find = jest.fn().mockReturnValue({ sort });
+
+                const result = await repository.search('a+b?');
+
+                expect(repository.NoteModel.find).toHaveBeenCalledWith({
+                    deletedAt: null,
+                    $or: [
+                        { title: { $regex: 'a\\+b\\?', $options: 'i' } },
+                        { content: { $regex: 'a\\+b\\?', $options: 'i' } },
+                    ],
+                });
+                expect(sort).toHaveBeenCalledWith({ updatedAt: -1 });
+                expect(result).toHaveLength(1);
+                expect(result[0]).toMatchObject({
+                    id: 'note-1',
+                    title: 'Project Plan',
+                    content: 'Review milestones',
+                    deletedAt: null,
+                });
+            });
+
+            test('should propagate search query errors', async () => {
+                const error = new Error('Search query failed');
+                repository.NoteModel.find = jest.fn().mockImplementation(() => {
+                    throw error;
+                });
+
+                await expect(repository.search('project')).rejects.toBe(error);
+                expect(console.error).toHaveBeenCalledWith('Failed to search notes:', error);
+            });
+        });
+
         describe('findDeleted() error handling', () => {
             test('should handle database query errors in findDeleted', async () => {
                 repository.NoteModel.find = jest.fn().mockReturnValue({

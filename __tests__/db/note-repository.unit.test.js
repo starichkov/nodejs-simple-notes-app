@@ -13,6 +13,10 @@ describe('NoteRepository Abstract Interface Tests', () => {
             await expect(repository.findAll()).rejects.toThrow('Method not implemented');
         });
 
+        test('should throw "Method not implemented" for search', async () => {
+            await expect(repository.search('test')).rejects.toThrow('Method not implemented');
+        });
+
         test('should throw "Method not implemented" for findDeleted', async () => {
             await expect(repository.findDeleted()).rejects.toThrow('Method not implemented');
         });
@@ -69,6 +73,7 @@ describe('NoteRepository Abstract Interface Tests', () => {
 
         test('should have all required methods defined', () => {
             expect(typeof repository.findAll).toBe('function');
+            expect(typeof repository.search).toBe('function');
             expect(typeof repository.findDeleted).toBe('function');
             expect(typeof repository.findAllIncludingDeleted).toBe('function');
             expect(typeof repository.findById).toBe('function');
@@ -84,6 +89,7 @@ describe('NoteRepository Abstract Interface Tests', () => {
 
         test('should have correct method arities', () => {
             expect(repository.findAll.length).toBe(0);
+            expect(repository.search.length).toBe(1);
             expect(repository.findDeleted.length).toBe(0);
             expect(repository.findAllIncludingDeleted.length).toBe(0);
             expect(repository.findById.length).toBe(1);
@@ -103,6 +109,7 @@ describe('NoteRepository Abstract Interface Tests', () => {
         test('should reject with appropriate error messages', async () => {
             const errorMethods = [
                 () => repository.findAll(),
+                () => repository.search('test'),
                 () => repository.findDeleted(),
                 () => repository.findAllIncludingDeleted(),
                 () => repository.findById('test'),

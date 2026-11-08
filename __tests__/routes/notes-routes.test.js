@@ -14,6 +14,16 @@ class MockNoteRepository {
         return this.notes.filter((note) => note.deletedAt === null);
     }
 
+    async search(keyword) {
+        const normalizedKeyword = keyword.toLowerCase();
+        return this.notes.filter(
+            (note) =>
+                note.deletedAt === null &&
+                (note.title.toLowerCase().includes(normalizedKeyword) ||
+                    note.content.toLowerCase().includes(normalizedKeyword)),
+        );
+    }
+
     async findDeleted() {
         return this.notes.filter((note) => note.deletedAt !== null);
     }
@@ -152,6 +162,40 @@ describe('Notes Routes', () => {
 
             expect(response.status).toBe(500);
             expect(response.body.error).toBe('Failed to retrieve notes');
+        });
+    });
+
+    describe('GET /api/notes/search', () => {
+        test('should return active notes matching title or content case-insensitively', async () => {
+            await repository.create({ title: 'Project Plan', content: 'Review milestones' });
+            await repository.create({ title: 'Shopping List', content: 'Buy project supplies' });
+            const deletedNote = await repository.create({ title: 'Old Project', content: 'Archived work' });
+            await repository.moveToRecycleBin(deletedNote.id);
+
+            const response = await request(app).get('/api/notes/search?q=PROJECT');
+
+            expect(response.status).toBe(200);
+            expect(response.body.map((note) => note.title)).toEqual(['Project Plan', 'Shopping List']);
+        });
+
+        test('should reject a missing or blank search query', async () => {
+            const missingResponse = await request(app).get('/api/notes/search');
+            const blankResponse = await request(app).get('/api/notes/search?q=   ');
+
+            expect(missingResponse.status).toBe(400);
+            expect(blankResponse.status).toBe(400);
+            expect(missingResponse.body).toEqual({ error: 'Search query is required' });
+        });
+
+        test('should translate repository errors', async () => {
+            repository.search = async () => {
+                throw new Error('Database error');
+            };
+
+            const response = await request(app).get('/api/notes/search?q=project');
+
+            expect(response.status).toBe(500);
+            expect(response.body.error).toBe('Failed to search notes');
         });
     });
 

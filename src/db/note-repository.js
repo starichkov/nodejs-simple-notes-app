@@ -12,6 +12,15 @@ export class NoteRepository {
     }
 
     /**
+     * Search active notes by a case-insensitive substring in their title or content
+     * @param {string} keyword - Text to search for
+     * @returns {Promise<Array>} Promise resolving to matching active Note objects
+     */
+    async search(keyword) {
+        throw new Error('Method not implemented');
+    }
+
+    /**
      * Find all deleted notes (in recycle bin)
      * @returns {Promise<Array>} Promise resolving to an array of deleted Note objects
      */

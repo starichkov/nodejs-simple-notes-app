@@ -19,6 +19,7 @@ A RESTful API for managing text notes, built with Node.js, Express, and NoSQL da
 - Create, read, update, and delete text notes
 - **Recycle bin functionality** - Move notes to recycle bin instead of immediate deletion
 - **Restore notes** from recycle bin or permanently delete them
+- Search active notes by title or content
 - RESTful API design
 - Simple and intuitive web UI with tabs for Notes and Recycle Bin
 - Database-agnostic architecture
@@ -255,6 +256,20 @@ Once the server is running, you can:
 ### Get all active notes
 ```
 GET /api/notes
+```
+
+### Search active notes
+```
+GET /api/notes/search?q=keyword
+```
+
+Search is case-insensitive and matches a substring in either the note title or content. Deleted notes are not included. The `q` query parameter is required and must not be blank.
+
+Missing or blank queries return `400`:
+```json
+{
+  "error": "Search query is required"
+}
 ```
 
 ### Get all deleted notes

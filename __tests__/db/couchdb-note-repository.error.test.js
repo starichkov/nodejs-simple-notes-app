@@ -281,6 +281,30 @@ describe('CouchDbNoteRepository Error Scenarios', () => {
     });
 
     describe('Query Error Scenarios', () => {
+        test('should search active notes by title or content case-insensitively', async () => {
+            repository.findAll = jest.fn().mockResolvedValue([
+                { title: 'Project Plan', content: 'Review milestones' },
+                { title: 'Shopping List', content: 'Buy project supplies' },
+                { title: 'Unrelated Note', content: 'Nothing relevant' },
+            ]);
+
+            const result = await repository.search('PROJECT');
+
+            expect(result).toEqual([
+                { title: 'Project Plan', content: 'Review milestones' },
+                { title: 'Shopping List', content: 'Buy project supplies' },
+            ]);
+            expect(repository.findAll).toHaveBeenCalledTimes(1);
+        });
+
+        test('should propagate errors from findAll during search', async () => {
+            const error = new Error('Active notes query failed');
+            repository.findAll = jest.fn().mockRejectedValue(error);
+
+            await expect(repository.search('project')).rejects.toBe(error);
+            expect(repository.findAll).toHaveBeenCalledWith();
+        });
+
         test('should handle view query errors in findAll', async () => {
             const mockDb = {
                 view: jest.fn().mockRejectedValue(new Error('View query failed')),

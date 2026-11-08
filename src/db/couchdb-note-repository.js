@@ -143,6 +143,27 @@ export class CouchDbNoteRepository extends NoteRepository {
     }
 
     /**
+     * Search active notes by a case-insensitive substring in their title or content
+     * @param {string} keyword - Text to search for
+     * @returns {Promise<Note[]>} Promise resolving to matching active Note objects
+     * @throws {Error} When database query fails or CouchDB is unreachable
+     */
+    async search(keyword) {
+        try {
+            const normalizedKeyword = keyword.toLocaleLowerCase();
+            const notes = await this.findAll();
+            return notes.filter(
+                (note) =>
+                    note.title.toLocaleLowerCase().includes(normalizedKeyword) ||
+                    note.content.toLocaleLowerCase().includes(normalizedKeyword),
+            );
+        } catch (error) {
+            console.error('Failed to search notes:', error);
+            throw error;
+        }
+    }
+
+    /**
      * Find all deleted notes (in recycle bin)
      * @returns {Promise<Note[]>} Promise resolving to an array of deleted Note objects
      * @throws {Error} When database query fails or CouchDB is unreachable

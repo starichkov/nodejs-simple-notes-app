@@ -102,6 +102,38 @@ export class MongoDbNoteRepository extends NoteRepository {
     }
 
     /**
+     * Search active notes by a case-insensitive substring in their title or content
+     * @param {string} keyword - Text to search for
+     * @returns {Promise<Note[]>} Promise resolving to matching active Note objects
+     * @throws {Error} When database query fails or MongoDB is unreachable
+     */
+    async search(keyword) {
+        try {
+            const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const notes = await this.NoteModel.find({
+                deletedAt: null,
+                $or: [
+                    { title: { $regex: escapedKeyword, $options: 'i' } },
+                    { content: { $regex: escapedKeyword, $options: 'i' } },
+                ],
+            }).sort({ updatedAt: -1 });
+            return notes.map((doc) =>
+                Note.fromObject({
+                    id: doc._id.toString(),
+                    title: doc.title,
+                    content: doc.content,
+                    deletedAt: doc.deletedAt,
+                    createdAt: doc.createdAt,
+                    updatedAt: doc.updatedAt,
+                }),
+            );
+        } catch (error) {
+            log.error('Failed to search notes:', error);
+            throw error;
+        }
+    }
+
+    /**
      * Find all deleted notes (in recycle bin)
      * @returns {Promise<Note[]>} Promise resolving to an array of deleted Note objects
      * @throws {Error} When database query fails or MongoDB is unreachable

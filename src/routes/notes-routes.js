@@ -46,6 +46,32 @@ export function createNotesRouter(noteRepository) {
     });
 
     /**
+     * @name GET /notes/search
+     * @description Search active notes by title or content
+     * @route GET /search?q=keyword
+     * @returns {Object[]} 200 - Array of matching active note objects
+     * @returns {Object} 400 - Missing or blank search query
+     * @returns {Object} 500 - Error response
+     */
+    router.get('/search', async (req, res, next) => {
+        try {
+            const keyword = typeof req.query.q === 'string' ? req.query.q.trim() : '';
+            if (!keyword) {
+                throw new BadRequestError('Search query is required');
+            }
+
+            const notes = await noteRepository.search(keyword);
+            res.json(notes.map((note) => note.toObject()));
+        } catch (error) {
+            next(
+                error instanceof BadRequestError
+                    ? error
+                    : new InternalServerError('Failed to search notes', { cause: error }),
+            );
+        }
+    });
+
+    /**
      * @name GET /notes/recycle-bin
      * @description Retrieve all deleted notes from the recycle bin
      * @route GET /recycle-bin
