@@ -8,6 +8,8 @@ import { CouchDbNoteRepository } from './db/couchdb-note-repository.js';
 import { MongoDbNoteRepository } from './db/mongodb-note-repository.js';
 import { createNotesRouter } from './routes/notes-routes.js';
 import { createLogger } from './logger.js';
+import { errorHandler } from './middleware/error-handler.js';
+import { NotFoundError } from './errors/app-error.js';
 
 // Load environment variables
 dotenv.config();
@@ -183,22 +185,12 @@ export class NotesServer {
             });
 
             // 404 handler for undefined routes
-            this.app.use((req, res) => {
-                res.status(404).json({ error: 'Not found' });
+            this.app.use((req, res, next) => {
+                next(new NotFoundError('Not found'));
             });
 
-            // Error handling middleware
-            this.app.use((err, req, res, next) => {
-                log.error('Unhandled error:', err);
-
-                // Handle JSON parsing errors
-                if (err.type === 'entity.parse.failed') {
-                    return res.status(400).json({ error: 'Invalid JSON' });
-                }
-
-                // Default to 500 for other errors
-                res.status(500).json({ error: 'Internal server error' });
-            });
+            // Shared error translation must be registered after all routes.
+            this.app.use(errorHandler);
 
             return { app: this.app, repository };
         } catch (error) {

@@ -1,5 +1,6 @@
 import express from 'express';
-import { createLogger } from '../logger.js';
+import { BadRequestError, InternalServerError, NotFoundError } from '../errors/app-error.js';
+import { errorHandler } from '../middleware/error-handler.js';
 
 /**
  * Create a router for note-related endpoints
@@ -15,7 +16,6 @@ import { createLogger } from '../logger.js';
  */
 export function createNotesRouter(noteRepository) {
     const router = express.Router();
-    const log = createLogger('NotesRoutes');
 
     /**
      * @name GET /notes
@@ -36,13 +36,12 @@ export function createNotesRouter(noteRepository) {
      *   }
      * ]
      */
-    router.get('/', async (req, res) => {
+    router.get('/', async (req, res, next) => {
         try {
             const notes = await noteRepository.findAll();
             res.json(notes.map((note) => note.toObject()));
         } catch (error) {
-            log.error('Error getting all notes:', error);
-            res.status(500).json({ error: 'Failed to retrieve notes' });
+            next(new InternalServerError('Failed to retrieve notes', { cause: error }));
         }
     });
 
@@ -65,13 +64,12 @@ export function createNotesRouter(noteRepository) {
      *   }
      * ]
      */
-    router.get('/recycle-bin', async (req, res) => {
+    router.get('/recycle-bin', async (req, res, next) => {
         try {
             const notes = await noteRepository.findDeleted();
             res.json(notes.map((note) => note.toObject()));
         } catch (error) {
-            log.error('Error getting deleted notes:', error);
-            res.status(500).json({ error: 'Failed to retrieve deleted notes' });
+            next(new InternalServerError('Failed to retrieve deleted notes', { cause: error }));
         }
     });
 
@@ -81,13 +79,12 @@ export function createNotesRouter(noteRepository) {
      * @description Legacy route - use /recycle-bin instead
      * @deprecated Use GET /recycle-bin instead
      */
-    router.get('/trash', async (req, res) => {
+    router.get('/trash', async (req, res, next) => {
         try {
             const notes = await noteRepository.findDeleted();
             res.json(notes.map((note) => note.toObject()));
         } catch (error) {
-            log.error('Error getting deleted notes:', error);
-            res.status(500).json({ error: 'Failed to retrieve deleted notes' });
+            next(new InternalServerError('Failed to retrieve deleted notes', { cause: error }));
         }
     });
 
@@ -103,13 +100,12 @@ export function createNotesRouter(noteRepository) {
      *   "count": 5
      * }
      */
-    router.get('/recycle-bin/count', async (req, res) => {
+    router.get('/recycle-bin/count', async (req, res, next) => {
         try {
             const count = await noteRepository.countDeleted();
             res.json({ count });
         } catch (error) {
-            log.error('Error counting deleted notes:', error);
-            res.status(500).json({ error: 'Failed to count deleted notes' });
+            next(new InternalServerError('Failed to count deleted notes', { cause: error }));
         }
     });
 
@@ -126,7 +122,7 @@ export function createNotesRouter(noteRepository) {
      *   "deletedCount": 5
      * }
      */
-    router.delete('/recycle-bin', async (req, res) => {
+    router.delete('/recycle-bin', async (req, res, next) => {
         try {
             const deletedCount = await noteRepository.emptyRecycleBin();
             res.json({
@@ -134,8 +130,7 @@ export function createNotesRouter(noteRepository) {
                 deletedCount,
             });
         } catch (error) {
-            log.error('Error emptying recycle bin:', error);
-            res.status(500).json({ error: 'Failed to empty recycle bin' });
+            next(new InternalServerError('Failed to empty recycle bin', { cause: error }));
         }
     });
 
@@ -152,7 +147,7 @@ export function createNotesRouter(noteRepository) {
      *   "restoredCount": 5
      * }
      */
-    router.post('/recycle-bin/restore-all', async (req, res) => {
+    router.post('/recycle-bin/restore-all', async (req, res, next) => {
         try {
             const restoredCount = await noteRepository.restoreAll();
             res.json({
@@ -160,8 +155,7 @@ export function createNotesRouter(noteRepository) {
                 restoredCount,
             });
         } catch (error) {
-            log.error('Error restoring all notes:', error);
-            res.status(500).json({ error: 'Failed to restore all notes' });
+            next(new InternalServerError('Failed to restore all notes', { cause: error }));
         }
     });
 
@@ -184,16 +178,19 @@ export function createNotesRouter(noteRepository) {
      *   "updatedAt": "2023-01-02T00:00:00.000Z"
      * }
      */
-    router.get('/:id', async (req, res) => {
+    router.get('/:id', async (req, res, next) => {
         try {
             const note = await noteRepository.findById(req.params.id);
             if (!note) {
-                return res.status(404).json({ error: 'Note not found' });
+                throw new NotFoundError('Note not found');
             }
             res.json(note.toObject());
         } catch (error) {
-            log.error(`Error getting note with ID ${req.params.id}:`, error);
-            res.status(500).json({ error: 'Failed to retrieve note' });
+            next(
+                error instanceof NotFoundError
+                    ? error
+                    : new InternalServerError('Failed to retrieve note', { cause: error }),
+            );
         }
     });
 
@@ -224,11 +221,11 @@ export function createNotesRouter(noteRepository) {
      *   "updatedAt": "2023-01-03T00:00:00.000Z"
      * }
      */
-    router.post('/', async (req, res) => {
+    router.post('/', async (req, res, next) => {
         try {
             // Validate request body
             if (!req.body.title || !req.body.content) {
-                return res.status(400).json({ error: 'Title and content are required' });
+                throw new BadRequestError('Title and content are required');
             }
 
             const note = await noteRepository.create({
@@ -238,8 +235,11 @@ export function createNotesRouter(noteRepository) {
 
             res.status(201).json(note.toObject());
         } catch (error) {
-            log.error('Error creating note:', error);
-            res.status(500).json({ error: 'Failed to create note' });
+            next(
+                error instanceof BadRequestError
+                    ? error
+                    : new InternalServerError('Failed to create note', { cause: error }),
+            );
         }
     });
 
@@ -272,11 +272,11 @@ export function createNotesRouter(noteRepository) {
      *   "updatedAt": "2023-01-03T00:00:00.000Z"
      * }
      */
-    router.put('/:id', async (req, res) => {
+    router.put('/:id', async (req, res, next) => {
         try {
             // Validate request body
             if (!req.body.title || !req.body.content) {
-                return res.status(400).json({ error: 'Title and content are required' });
+                throw new BadRequestError('Title and content are required');
             }
 
             const note = await noteRepository.update(req.params.id, {
@@ -285,13 +285,16 @@ export function createNotesRouter(noteRepository) {
             });
 
             if (!note) {
-                return res.status(404).json({ error: 'Note not found' });
+                throw new NotFoundError('Note not found');
             }
 
             res.json(note.toObject());
         } catch (error) {
-            log.error(`Error updating note with ID ${req.params.id}:`, error);
-            res.status(500).json({ error: 'Failed to update note' });
+            next(
+                error instanceof BadRequestError || error instanceof NotFoundError
+                    ? error
+                    : new InternalServerError('Failed to update note', { cause: error }),
+            );
         }
     });
 
@@ -310,18 +313,21 @@ export function createNotesRouter(noteRepository) {
      *   "error": "Note not found"
      * }
      */
-    router.post('/:id/restore', async (req, res) => {
+    router.post('/:id/restore', async (req, res, next) => {
         try {
             const restored = await noteRepository.restore(req.params.id);
 
             if (!restored) {
-                return res.status(404).json({ error: 'Note not found' });
+                throw new NotFoundError('Note not found');
             }
 
             res.status(204).end();
         } catch (error) {
-            log.error(`Error restoring note with ID ${req.params.id}:`, error);
-            res.status(500).json({ error: 'Failed to restore note' });
+            next(
+                error instanceof NotFoundError
+                    ? error
+                    : new InternalServerError('Failed to restore note', { cause: error }),
+            );
         }
     });
 
@@ -340,17 +346,20 @@ export function createNotesRouter(noteRepository) {
      *   "error": "Note not found"
      * }
      */
-    router.delete('/:id', async (req, res) => {
+    router.delete('/:id', async (req, res, next) => {
         try {
             const deleted = await noteRepository.moveToRecycleBin(req.params.id);
             if (!deleted) {
-                return res.status(404).json({ error: 'Note not found' });
+                throw new NotFoundError('Note not found');
             }
 
             res.status(204).end();
         } catch (error) {
-            log.error(`Error moving note to recycle bin with ID ${req.params.id}:`, error);
-            res.status(500).json({ error: 'Failed to move note to recycle bin' });
+            next(
+                error instanceof NotFoundError
+                    ? error
+                    : new InternalServerError('Failed to move note to recycle bin', { cause: error }),
+            );
         }
     });
 
@@ -369,20 +378,27 @@ export function createNotesRouter(noteRepository) {
      *   "error": "Note not found"
      * }
      */
-    router.delete('/:id/permanent', async (req, res) => {
+    router.delete('/:id/permanent', async (req, res, next) => {
         try {
             const deleted = await noteRepository.permanentDelete(req.params.id);
 
             if (!deleted) {
-                return res.status(404).json({ error: 'Note not found' });
+                throw new NotFoundError('Note not found');
             }
 
             res.status(204).end();
         } catch (error) {
-            log.error(`Error permanently deleting note with ID ${req.params.id}:`, error);
-            res.status(500).json({ error: 'Failed to permanently delete note' });
+            next(
+                error instanceof NotFoundError
+                    ? error
+                    : new InternalServerError('Failed to permanently delete note', { cause: error }),
+            );
         }
     });
+
+    // Keep the router independently usable while the application also mounts
+    // the same shared handler for errors raised by other middleware.
+    router.use(errorHandler);
 
     return router;
 }
