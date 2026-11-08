@@ -146,6 +146,7 @@ describe('CouchDbNoteRepository Error Handling Tests', () => {
                 _id: 'note1',
                 title: 'Valid Note',
                 content: 'Valid Content',
+                category: 'Work',
                 deletedAt: null,
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
@@ -157,6 +158,7 @@ describe('CouchDbNoteRepository Error Handling Tests', () => {
 
             expect(result.length).toBe(1);
             expect(result[0].id).toBe('note1');
+            expect(result[0].category).toBe('Work');
         });
     });
 

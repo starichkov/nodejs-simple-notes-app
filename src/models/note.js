@@ -11,17 +11,27 @@ export class Note {
      * @param {Date} createdAt - Date when the note was created
      * @param {Date} updatedAt - Date when the note was last updated
      * @param {Date|null} deletedAt - Date when the note was deleted (null if not deleted)
+     * @param {string|null} category - Optional category for organizing the note
      * @returns {Note} New Note instance
      * @example
-     * const note = new Note('123', 'My Note', 'Note content', new Date(), new Date(), null);
+     * const note = new Note('123', 'My Note', 'Note content', new Date(), new Date(), null, 'Work');
      */
-    constructor(id = null, title = '', content = '', createdAt = new Date(), updatedAt = new Date(), deletedAt = null) {
+    constructor(
+        id = null,
+        title = '',
+        content = '',
+        createdAt = new Date(),
+        updatedAt = new Date(),
+        deletedAt = null,
+        category = null,
+    ) {
         this.id = id;
         this.title = title;
         this.content = content;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
         this.deletedAt = deletedAt;
+        this.category = category;
     }
 
     /**
@@ -43,6 +53,7 @@ export class Note {
         note.id = obj.id;
         note.title = obj.title;
         note.content = obj.content;
+        note.category = obj.category ?? null;
         note.createdAt = obj.createdAt ? new Date(obj.createdAt) : new Date();
         note.updatedAt = obj.updatedAt ? new Date(obj.updatedAt) : new Date();
         note.deletedAt = obj.deletedAt ? new Date(obj.deletedAt) : null;
@@ -62,6 +73,7 @@ export class Note {
             id: this.id,
             title: this.title,
             content: this.content,
+            category: this.category,
             createdAt: this.createdAt,
             updatedAt: this.updatedAt,
             deletedAt: this.deletedAt,

@@ -233,6 +233,7 @@ export function createNotesRouter(noteRepository) {
      * @param {Object} req.body - Note data
      * @param {string} req.body.title - Note title (required)
      * @param {string} req.body.content - Note content (required)
+     * @param {string} [req.body.category] - Optional category, trimmed and limited to 100 characters
      * @returns {Object} 201 - Created note object
      * @returns {Object} 400 - Validation error response
      * @returns {Object} 500 - Server error response
@@ -240,7 +241,8 @@ export function createNotesRouter(noteRepository) {
      * // Request body:
      * {
      *   "title": "New Note",
-     *   "content": "This is the content of the new note"
+     *   "content": "This is the content of the new note",
+     *   "category": "Work"
      * }
      *
      * // Response format (201):
@@ -275,6 +277,7 @@ export function createNotesRouter(noteRepository) {
      * @param {Object} req.body - Updated note data
      * @param {string} req.body.title - Updated note title (required)
      * @param {string} req.body.content - Updated note content (required)
+     * @param {string} [req.body.category] - Optional category, trimmed and limited to 100 characters
      * @returns {Object} 200 - Updated note object
      * @returns {Object} 400 - Validation error response
      * @returns {Object} 404 - Note not found error
@@ -283,7 +286,8 @@ export function createNotesRouter(noteRepository) {
      * // Request body:
      * {
      *   "title": "Updated Note Title",
-     *   "content": "Updated note content"
+     *   "content": "Updated note content",
+     *   "category": "Work"
      * }
      *
      * // Response format (200):

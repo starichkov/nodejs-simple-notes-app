@@ -61,6 +61,7 @@ export class MongoDbNoteRepository extends NoteRepository {
                 const noteSchema = new mongoose.Schema({
                     title: { type: String, required: true },
                     content: { type: String, required: true },
+                    category: { type: String, default: null },
                     deletedAt: { type: Date, default: null },
                     createdAt: { type: Date, default: Date.now },
                     updatedAt: { type: Date, default: Date.now },
@@ -99,6 +100,7 @@ export class MongoDbNoteRepository extends NoteRepository {
                     id: doc._id.toString(),
                     title: doc.title,
                     content: doc.content,
+                    category: doc.category,
                     deletedAt: doc.deletedAt,
                     createdAt: doc.createdAt,
                     updatedAt: doc.updatedAt,
@@ -132,6 +134,7 @@ export class MongoDbNoteRepository extends NoteRepository {
                     id: doc._id.toString(),
                     title: doc.title,
                     content: doc.content,
+                    category: doc.category,
                     deletedAt: doc.deletedAt,
                     createdAt: doc.createdAt,
                     updatedAt: doc.updatedAt,
@@ -159,6 +162,7 @@ export class MongoDbNoteRepository extends NoteRepository {
                     id: doc._id.toString(),
                     title: doc.title,
                     content: doc.content,
+                    category: doc.category,
                     deletedAt: doc.deletedAt,
                     createdAt: doc.createdAt,
                     updatedAt: doc.updatedAt,
@@ -183,6 +187,7 @@ export class MongoDbNoteRepository extends NoteRepository {
                     id: doc._id.toString(),
                     title: doc.title,
                     content: doc.content,
+                    category: doc.category,
                     deletedAt: doc.deletedAt,
                     createdAt: doc.createdAt,
                     updatedAt: doc.updatedAt,
@@ -217,6 +222,7 @@ export class MongoDbNoteRepository extends NoteRepository {
                 id: doc._id.toString(),
                 title: doc.title,
                 content: doc.content,
+                category: doc.category,
                 deletedAt: doc.deletedAt,
                 createdAt: doc.createdAt,
                 updatedAt: doc.updatedAt,
@@ -235,6 +241,7 @@ export class MongoDbNoteRepository extends NoteRepository {
      * @param {Object} note - The note data to create
      * @param {string} note.title - The title of the note
      * @param {string} note.content - The content of the note
+     * @param {string|null} [note.category] - Optional category for the note
      * @returns {Promise<Note>} Promise resolving to the created Note object with assigned ID
      * @throws {Error} When note creation fails due to validation errors or database issues
      * @example
@@ -250,6 +257,7 @@ export class MongoDbNoteRepository extends NoteRepository {
             const newNote = new this.NoteModel({
                 title: note.title,
                 content: note.content,
+                category: note.category ?? null,
                 deletedAt: null,
                 createdAt: now,
                 updatedAt: now,
@@ -261,6 +269,7 @@ export class MongoDbNoteRepository extends NoteRepository {
                 id: savedNote._id.toString(),
                 title: savedNote.title,
                 content: savedNote.content,
+                category: savedNote.category,
                 deletedAt: savedNote.deletedAt,
                 createdAt: new Date(savedNote.createdAt),
                 updatedAt: new Date(savedNote.updatedAt),
@@ -277,6 +286,7 @@ export class MongoDbNoteRepository extends NoteRepository {
      * @param {Object} note - The updated note data
      * @param {string} note.title - The updated title of the note
      * @param {string} note.content - The updated content of the note
+     * @param {string|null} [note.category] - Optional category for the note
      * @returns {Promise<Note|null>} Promise resolving to the updated Note object or null if not found
      * @throws {Error} When update fails due to validation errors or database issues
      * @example
@@ -298,6 +308,7 @@ export class MongoDbNoteRepository extends NoteRepository {
                 {
                     title: note.title,
                     content: note.content,
+                    category: note.category ?? null,
                     updatedAt: now,
                 },
                 { new: true }, // Return the updated document
@@ -311,6 +322,7 @@ export class MongoDbNoteRepository extends NoteRepository {
                 id: updatedDoc._id.toString(),
                 title: updatedDoc.title,
                 content: updatedDoc.content,
+                category: updatedDoc.category,
                 deletedAt: updatedDoc.deletedAt,
                 createdAt: updatedDoc.createdAt,
                 updatedAt: updatedDoc.updatedAt,

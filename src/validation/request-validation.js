@@ -4,6 +4,7 @@ export const DEFAULT_PAGE_LIMIT = 20;
 export const MAX_PAGE_LIMIT = 100;
 export const MAX_NOTE_TITLE_LENGTH = 200;
 export const MAX_NOTE_CONTENT_LENGTH = 10000;
+export const MAX_NOTE_CATEGORY_LENGTH = 100;
 export const MAX_SEARCH_QUERY_LENGTH = 200;
 
 /**
@@ -19,7 +20,7 @@ function isSafeIntegerQueryValue(value) {
 /**
  * Validate and normalize a note request body.
  * @param {object} body - Request body containing title and content
- * @returns {{title: string, content: string}} Validated note fields
+ * @returns {{title: string, content: string, category: string|null}} Validated note fields
  * @throws {BadRequestError} When fields are missing, have invalid types, or exceed limits
  * @example validateNoteBody({ title: 'Title', content: 'Content' });
  */
@@ -28,7 +29,7 @@ export function validateNoteBody(body) {
         throw new BadRequestError('Title and content are required');
     }
 
-    const { title, content } = body;
+    const { title, content, category } = body;
     if (title === undefined || content === undefined) {
         throw new BadRequestError('Title and content are required');
     }
@@ -44,8 +45,15 @@ export function validateNoteBody(body) {
     if (content.length > MAX_NOTE_CONTENT_LENGTH) {
         throw new BadRequestError(`content must not exceed ${MAX_NOTE_CONTENT_LENGTH} characters`);
     }
+    if (category !== undefined && category !== null && typeof category !== 'string') {
+        throw new BadRequestError('category must be a string');
+    }
+    const normalizedCategory = category === undefined || category === null ? null : category.trim();
+    if (normalizedCategory && normalizedCategory.length > MAX_NOTE_CATEGORY_LENGTH) {
+        throw new BadRequestError(`category must not exceed ${MAX_NOTE_CATEGORY_LENGTH} characters`);
+    }
 
-    return { title, content };
+    return { title, content, category: normalizedCategory || null };
 }
 
 /**

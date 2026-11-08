@@ -270,6 +270,7 @@ The response uses a pagination envelope:
       "id": "note_123",
       "title": "Sample Note",
       "content": "Note content",
+      "category": null,
       "deletedAt": null,
       "createdAt": "2023-01-01T00:00:00.000Z",
       "updatedAt": "2023-01-02T00:00:00.000Z"
@@ -317,11 +318,12 @@ Content-Type: application/json
 
 {
   "title": "Note Title",
-  "content": "Note content goes here"
+  "content": "Note content goes here",
+  "category": "Work"
 }
 ```
 
-Both create and update requests use the same schema: `title` and `content` are required strings, must not be blank, and may contain at most 200 and 10,000 characters respectively. Invalid types, blank values, or over-limit values return `400` and do not call the repository.
+Both create and update requests use the same schema: `title` and `content` are required strings, must not be blank, and may contain at most 200 and 10,000 characters respectively. The optional `category` is trimmed, may be `null`, and may contain at most 100 characters. Invalid types, blank values, or over-limit values return `400` and do not call the repository. Responses always include `category`, using `null` when it is omitted.
 
 ### Update a note
 ```
@@ -330,7 +332,8 @@ Content-Type: application/json
 
 {
   "title": "Updated Title",
-  "content": "Updated content"
+  "content": "Updated content",
+  "category": "Personal"
 }
 ```
 

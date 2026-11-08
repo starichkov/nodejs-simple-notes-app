@@ -214,6 +214,7 @@ export class CouchDbNoteRepository extends NoteRepository {
                 id: doc._id,
                 title: doc.title,
                 content: doc.content,
+                category: doc.category,
                 deletedAt: doc.deletedAt ? new Date(doc.deletedAt) : null,
                 createdAt: new Date(doc.createdAt),
                 updatedAt: new Date(doc.updatedAt),
@@ -232,6 +233,7 @@ export class CouchDbNoteRepository extends NoteRepository {
      * @param {Object} note - The note data to create
      * @param {string} note.title - The title of the note
      * @param {string} note.content - The content of the note
+     * @param {string|null} [note.category] - Optional category for the note
      * @returns {Promise<Note>} Promise resolving to the created Note object with assigned ID
      * @throws {Error} When note creation fails or database is unreachable
      * @example
@@ -248,6 +250,7 @@ export class CouchDbNoteRepository extends NoteRepository {
                 type: 'note',
                 title: note.title,
                 content: note.content,
+                category: note.category ?? null,
                 deletedAt: null,
                 createdAt: now.toISOString(),
                 updatedAt: now.toISOString(),
@@ -259,6 +262,7 @@ export class CouchDbNoteRepository extends NoteRepository {
                 id: result.id,
                 title: doc.title,
                 content: doc.content,
+                category: doc.category,
                 deletedAt: doc.deletedAt,
                 createdAt: new Date(doc.createdAt),
                 updatedAt: new Date(doc.updatedAt),
@@ -275,6 +279,7 @@ export class CouchDbNoteRepository extends NoteRepository {
      * @param {Object} note - The updated note data
      * @param {string} note.title - The updated title of the note
      * @param {string} note.content - The updated content of the note
+     * @param {string|null} [note.category] - Optional category for the note
      * @returns {Promise<Note|null>} Promise resolving to the updated Note object or null if not found
      * @throws {Error} When update fails due to database issues
      * @throws {Error} When document was modified concurrently (409 conflict)
@@ -311,6 +316,7 @@ export class CouchDbNoteRepository extends NoteRepository {
                 type: 'note',
                 title: note.title,
                 content: note.content,
+                category: note.category ?? null,
                 deletedAt: currentDoc.deletedAt || null,
                 createdAt: currentDoc.createdAt,
                 updatedAt: now.toISOString(),
@@ -322,6 +328,7 @@ export class CouchDbNoteRepository extends NoteRepository {
                 id: id,
                 title: note.title,
                 content: note.content,
+                category: updatedDoc.category,
                 deletedAt: updatedDoc.deletedAt ? new Date(updatedDoc.deletedAt) : null,
                 createdAt: new Date(currentDoc.createdAt),
                 updatedAt: new Date(updatedDoc.updatedAt),
@@ -554,6 +561,7 @@ export class CouchDbNoteRepository extends NoteRepository {
                     id: doc._id,
                     title: doc.title,
                     content: doc.content,
+                    category: doc.category,
                     deletedAt: doc.deletedAt ? new Date(doc.deletedAt) : null,
                     createdAt: new Date(doc.createdAt),
                     updatedAt: new Date(doc.updatedAt),

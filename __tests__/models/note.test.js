@@ -18,6 +18,7 @@ describe('Note Model', () => {
             expect(note.createdAt).toBe(createdAt);
             expect(note.updatedAt).toBe(updatedAt);
             expect(note.deletedAt).toBe(deletedAt);
+            expect(note.category).toBeNull();
         });
 
         test('should create a note with default parameters', () => {
@@ -29,6 +30,7 @@ describe('Note Model', () => {
             expect(note.createdAt).toBeInstanceOf(Date);
             expect(note.updatedAt).toBeInstanceOf(Date);
             expect(note.deletedAt).toBeNull();
+            expect(note.category).toBeNull();
         });
 
         test('should create a note with partial parameters', () => {
@@ -160,6 +162,7 @@ describe('Note Model', () => {
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
+                category: 'Work',
             };
 
             const note = Note.fromObject(obj);
@@ -242,6 +245,7 @@ describe('Note Model', () => {
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
+                category: null,
             });
         });
 

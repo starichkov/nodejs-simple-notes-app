@@ -41,7 +41,15 @@ class MockNoteRepository {
 
     async create(noteData) {
         const id = String(this.nextId++);
-        const note = new Note(id, noteData.title, noteData.content, new Date(), new Date(), null);
+        const note = new Note(
+            id,
+            noteData.title,
+            noteData.content,
+            new Date(),
+            new Date(),
+            null,
+            noteData.category ?? null,
+        );
         this.notes.push(note);
         return note;
     }
@@ -53,6 +61,7 @@ class MockNoteRepository {
         const note = this.notes[index];
         note.title = noteData.title;
         note.content = noteData.content;
+        note.category = noteData.category ?? null;
         note.updatedAt = new Date();
 
         return note;
@@ -365,6 +374,14 @@ describe('Notes Routes', () => {
     });
 
     describe('POST /api/notes', () => {
+        test('should create a note with a normalized category', async () => {
+            const response = await request(app)
+                .post('/api/notes')
+                .send({ title: 'Categorized', content: 'Content', category: ' Work ' });
+
+            expect(response.status).toBe(201);
+            expect(response.body.category).toBe('Work');
+        });
         test('should create a new note', async () => {
             const noteData = { title: 'New Note', content: 'New Content' };
 
@@ -444,6 +461,17 @@ describe('Notes Routes', () => {
             expect(response.body.title).toBe(updateData.title);
             expect(response.body.content).toBe(updateData.content);
             expect(response.body.deletedAt).toBeNull();
+        });
+
+        test('should update a note with a normalized category', async () => {
+            const note = await repository.create({ title: 'Original', content: 'Original' });
+
+            const response = await request(app)
+                .put(`/api/notes/${note.id}`)
+                .send({ title: 'Updated', content: 'Updated', category: ' Personal ' });
+
+            expect(response.status).toBe(200);
+            expect(response.body.category).toBe('Personal');
         });
 
         test('should return 404 for non-existent note', async () => {

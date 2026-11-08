@@ -49,6 +49,7 @@ export class NoteRepository {
     /**
      * Create a new note
      * @param {Object} note - The note to create
+     * @param {string|null} [note.category] - Optional note category
      * @returns {Promise<Object>} Promise resolving to the created Note object
      */
     async create(note) {
@@ -59,6 +60,7 @@ export class NoteRepository {
      * Update an existing note
      * @param {string} id - The ID of the note to update
      * @param {Object} note - The updated note data
+     * @param {string|null} [note.category] - Optional note category
      * @returns {Promise<Object|null>} Promise resolving to the updated Note object or null if not found
      */
     async update(id, note) {

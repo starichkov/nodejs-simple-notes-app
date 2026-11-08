@@ -79,6 +79,7 @@ describe('MongoDbNoteRepository Error Handling Tests', () => {
                         _id: { toString: () => 'note-1' },
                         title: 'Page Note',
                         content: 'Content',
+                        category: 'Work',
                         deletedAt: null,
                         createdAt: new Date('2024-01-01'),
                         updatedAt: new Date('2024-01-02'),
@@ -98,7 +99,7 @@ describe('MongoDbNoteRepository Error Handling Tests', () => {
                 expect(skip).toHaveBeenCalledWith(1);
                 expect(limit).toHaveBeenCalledWith(1);
                 expect(result.total).toBe(3);
-                expect(result.notes[0]).toMatchObject({ id: 'note-1', title: 'Page Note' });
+                expect(result.notes[0]).toMatchObject({ id: 'note-1', title: 'Page Note', category: 'Work' });
             });
 
             test('should handle database query errors in findAll', async () => {
@@ -138,6 +139,7 @@ describe('MongoDbNoteRepository Error Handling Tests', () => {
                         _id: { toString: () => 'note-1' },
                         title: 'Project Plan',
                         content: 'Review milestones',
+                        category: 'Work',
                         deletedAt: null,
                         createdAt: new Date('2024-01-01'),
                         updatedAt: new Date('2024-01-02'),
@@ -160,6 +162,7 @@ describe('MongoDbNoteRepository Error Handling Tests', () => {
                     id: 'note-1',
                     title: 'Project Plan',
                     content: 'Review milestones',
+                    category: 'Work',
                     deletedAt: null,
                 });
             });

@@ -64,6 +64,7 @@ describe('MongoDbNoteRepository Integration Tests', () => {
             const noteData = {
                 title: 'Test Note',
                 content: 'Test Content',
+                category: 'Work',
             };
 
             console.log('Creating note:', noteData);
@@ -72,6 +73,7 @@ describe('MongoDbNoteRepository Integration Tests', () => {
             expect(createdNote).toBeInstanceOf(Note);
             expect(createdNote.title).toBe(noteData.title);
             expect(createdNote.content).toBe(noteData.content);
+            expect(createdNote.category).toBe(noteData.category);
             expect(createdNote.id).toBeDefined();
 
             console.log('Retrieving created note...');
@@ -81,6 +83,7 @@ describe('MongoDbNoteRepository Integration Tests', () => {
             expect(retrievedNote.id).toBe(createdNote.id);
             expect(retrievedNote.title).toBe(noteData.title);
             expect(retrievedNote.content).toBe(noteData.content);
+            expect(retrievedNote.category).toBe(noteData.category);
         });
 
         it('should update a note', async () => {
@@ -100,6 +103,7 @@ describe('MongoDbNoteRepository Integration Tests', () => {
             const updatedData = {
                 title: 'Updated Title',
                 content: 'Updated Content',
+                category: 'Personal',
             };
 
             console.log('Updating note with:', updatedData);
@@ -109,6 +113,7 @@ describe('MongoDbNoteRepository Integration Tests', () => {
             expect(updatedNote.id).toBe(note.id);
             expect(updatedNote.title).toBe(updatedData.title);
             expect(updatedNote.content).toBe(updatedData.content);
+            expect(updatedNote.category).toBe(updatedData.category);
 
             console.log('Verifying updated note...');
             const retrievedNote = await repository.findById(note.id);
@@ -116,6 +121,7 @@ describe('MongoDbNoteRepository Integration Tests', () => {
             expect(retrievedNote).not.toBeNull();
             expect(retrievedNote.title).toBe(updatedData.title);
             expect(retrievedNote.content).toBe(updatedData.content);
+            expect(retrievedNote.category).toBe(updatedData.category);
         });
 
         it('should move note to trash (soft delete)', async () => {

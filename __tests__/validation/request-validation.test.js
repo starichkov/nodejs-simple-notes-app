@@ -1,6 +1,7 @@
 import { BadRequestError } from '../../src/errors/app-error.js';
 import {
     MAX_NOTE_CONTENT_LENGTH,
+    MAX_NOTE_CATEGORY_LENGTH,
     MAX_NOTE_TITLE_LENGTH,
     parsePagination,
     parseSearchQuery,
@@ -13,6 +14,15 @@ describe('request validation', () => {
             expect(validateNoteBody({ title: ' Title ', content: ' Content ' })).toEqual({
                 title: ' Title ',
                 content: ' Content ',
+                category: null,
+            });
+        });
+
+        test('trims a category and preserves null when omitted', () => {
+            expect(validateNoteBody({ title: 'Title', content: 'Content', category: ' Work ' })).toEqual({
+                title: 'Title',
+                content: 'Content',
+                category: 'Work',
             });
         });
 
@@ -30,6 +40,11 @@ describe('request validation', () => {
             [
                 { title: 'Title', content: 'a'.repeat(MAX_NOTE_CONTENT_LENGTH + 1) },
                 'content must not exceed 10000 characters',
+            ],
+            [{ title: 'Title', content: 'Content', category: 42 }, 'category must be a string'],
+            [
+                { title: 'Title', content: 'Content', category: 'a'.repeat(MAX_NOTE_CATEGORY_LENGTH + 1) },
+                'category must not exceed 100 characters',
             ],
         ])('rejects invalid body %#', (body, message) => {
             expect(() => validateNoteBody(body)).toThrow(new BadRequestError(message));
