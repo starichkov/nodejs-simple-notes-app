@@ -62,6 +62,7 @@ export class MongoDbNoteRepository extends NoteRepository {
                     title: { type: String, required: true },
                     content: { type: String, required: true },
                     category: { type: String, default: null },
+                    tags: { type: [String], default: [] },
                     deletedAt: { type: Date, default: null },
                     createdAt: { type: Date, default: Date.now },
                     updatedAt: { type: Date, default: Date.now },
@@ -101,6 +102,7 @@ export class MongoDbNoteRepository extends NoteRepository {
                     title: doc.title,
                     content: doc.content,
                     category: doc.category,
+                    tags: doc.tags,
                     deletedAt: doc.deletedAt,
                     createdAt: doc.createdAt,
                     updatedAt: doc.updatedAt,
@@ -135,6 +137,7 @@ export class MongoDbNoteRepository extends NoteRepository {
                     title: doc.title,
                     content: doc.content,
                     category: doc.category,
+                    tags: doc.tags,
                     deletedAt: doc.deletedAt,
                     createdAt: doc.createdAt,
                     updatedAt: doc.updatedAt,
@@ -144,6 +147,46 @@ export class MongoDbNoteRepository extends NoteRepository {
             log.error('Failed to search notes:', error);
             throw error;
         }
+    }
+
+    /**
+     * Find unique tags on active notes.
+     * @returns {Promise<string[]>} Active tag spellings
+     * @throws {Error} When the database query fails
+     */
+    async findTags() {
+        return this.NoteModel.distinct('tags', { deletedAt: null });
+    }
+
+    /**
+     * Find active notes matching a tag case-insensitively.
+     * @param {string} tag - Tag value to match
+     * @param {{limit: number, offset: number}} options - Pagination options
+     * @returns {Promise<{notes: Note[], total: number}>} Matching page and total
+     * @throws {Error} When the database query fails
+     */
+    async findAllByTag(tag, options) {
+        const escapedTag = tag.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const filter = { deletedAt: null, tags: { $regex: `^${escapedTag}$`, $options: 'i' } };
+        const [total, documents] = await Promise.all([
+            this.NoteModel.countDocuments(filter),
+            this.NoteModel.find(filter).sort({ updatedAt: -1, _id: -1 }).skip(options.offset).limit(options.limit),
+        ]);
+        return {
+            notes: documents.map((doc) =>
+                Note.fromObject({
+                    id: doc._id.toString(),
+                    title: doc.title,
+                    content: doc.content,
+                    category: doc.category,
+                    tags: doc.tags,
+                    deletedAt: doc.deletedAt,
+                    createdAt: doc.createdAt,
+                    updatedAt: doc.updatedAt,
+                }),
+            ),
+            total,
+        };
     }
 
     /**
@@ -163,6 +206,7 @@ export class MongoDbNoteRepository extends NoteRepository {
                     title: doc.title,
                     content: doc.content,
                     category: doc.category,
+                    tags: doc.tags,
                     deletedAt: doc.deletedAt,
                     createdAt: doc.createdAt,
                     updatedAt: doc.updatedAt,
@@ -188,6 +232,7 @@ export class MongoDbNoteRepository extends NoteRepository {
                     title: doc.title,
                     content: doc.content,
                     category: doc.category,
+                    tags: doc.tags,
                     deletedAt: doc.deletedAt,
                     createdAt: doc.createdAt,
                     updatedAt: doc.updatedAt,
@@ -223,6 +268,7 @@ export class MongoDbNoteRepository extends NoteRepository {
                 title: doc.title,
                 content: doc.content,
                 category: doc.category,
+                tags: doc.tags,
                 deletedAt: doc.deletedAt,
                 createdAt: doc.createdAt,
                 updatedAt: doc.updatedAt,
@@ -242,6 +288,7 @@ export class MongoDbNoteRepository extends NoteRepository {
      * @param {string} note.title - The title of the note
      * @param {string} note.content - The content of the note
      * @param {string|null} [note.category] - Optional category for the note
+     * @param {string[]} [note.tags] - Optional tags for the note
      * @returns {Promise<Note>} Promise resolving to the created Note object with assigned ID
      * @throws {Error} When note creation fails due to validation errors or database issues
      * @example
@@ -258,6 +305,7 @@ export class MongoDbNoteRepository extends NoteRepository {
                 title: note.title,
                 content: note.content,
                 category: note.category ?? null,
+                tags: note.tags ?? [],
                 deletedAt: null,
                 createdAt: now,
                 updatedAt: now,
@@ -270,6 +318,7 @@ export class MongoDbNoteRepository extends NoteRepository {
                 title: savedNote.title,
                 content: savedNote.content,
                 category: savedNote.category,
+                tags: savedNote.tags,
                 deletedAt: savedNote.deletedAt,
                 createdAt: new Date(savedNote.createdAt),
                 updatedAt: new Date(savedNote.updatedAt),
@@ -287,6 +336,7 @@ export class MongoDbNoteRepository extends NoteRepository {
      * @param {string} note.title - The updated title of the note
      * @param {string} note.content - The updated content of the note
      * @param {string|null} [note.category] - Optional category for the note
+     * @param {string[]} [note.tags] - Optional tags for the note
      * @returns {Promise<Note|null>} Promise resolving to the updated Note object or null if not found
      * @throws {Error} When update fails due to validation errors or database issues
      * @example
@@ -309,6 +359,7 @@ export class MongoDbNoteRepository extends NoteRepository {
                     title: note.title,
                     content: note.content,
                     category: note.category ?? null,
+                    tags: note.tags ?? [],
                     updatedAt: now,
                 },
                 { new: true }, // Return the updated document
@@ -323,6 +374,7 @@ export class MongoDbNoteRepository extends NoteRepository {
                 title: updatedDoc.title,
                 content: updatedDoc.content,
                 category: updatedDoc.category,
+                tags: updatedDoc.tags,
                 deletedAt: updatedDoc.deletedAt,
                 createdAt: updatedDoc.createdAt,
                 updatedAt: updatedDoc.updatedAt,

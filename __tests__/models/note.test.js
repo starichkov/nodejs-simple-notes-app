@@ -19,6 +19,7 @@ describe('Note Model', () => {
             expect(note.updatedAt).toBe(updatedAt);
             expect(note.deletedAt).toBe(deletedAt);
             expect(note.category).toBeNull();
+            expect(note.tags).toEqual([]);
         });
 
         test('should create a note with default parameters', () => {
@@ -31,6 +32,7 @@ describe('Note Model', () => {
             expect(note.updatedAt).toBeInstanceOf(Date);
             expect(note.deletedAt).toBeNull();
             expect(note.category).toBeNull();
+            expect(note.tags).toEqual([]);
         });
 
         test('should create a note with partial parameters', () => {
@@ -54,6 +56,7 @@ describe('Note Model', () => {
                 createdAt: '2023-01-01T00:00:00.000Z',
                 updatedAt: '2023-01-02T00:00:00.000Z',
                 deletedAt: '2023-01-03T00:00:00.000Z',
+                tags: ['Work'],
             };
 
             const note = Note.fromObject(obj);
@@ -64,6 +67,7 @@ describe('Note Model', () => {
             expect(note.createdAt).toEqual(new Date('2023-01-01T00:00:00.000Z'));
             expect(note.updatedAt).toEqual(new Date('2023-01-02T00:00:00.000Z'));
             expect(note.deletedAt).toEqual(new Date('2023-01-03T00:00:00.000Z'));
+            expect(note.tags).toEqual(['Work']);
         });
 
         test('should create a note from object with null deletedAt', () => {
@@ -79,6 +83,7 @@ describe('Note Model', () => {
             const note = Note.fromObject(obj);
 
             expect(note.deletedAt).toBeNull();
+            expect(note.tags).toEqual([]);
         });
 
         test('should handle missing date fields by using defaults', () => {
@@ -246,6 +251,7 @@ describe('Note Model', () => {
                 updatedAt: updatedAt,
                 deletedAt: deletedAt,
                 category: null,
+                tags: [],
             });
         });
 

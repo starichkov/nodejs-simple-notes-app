@@ -49,6 +49,7 @@ class MockNoteRepository {
             new Date(),
             null,
             noteData.category ?? null,
+            noteData.tags ?? [],
         );
         this.notes.push(note);
         return note;
@@ -62,6 +63,7 @@ class MockNoteRepository {
         note.title = noteData.title;
         note.content = noteData.content;
         note.category = noteData.category ?? null;
+        note.tags = noteData.tags ?? [];
         note.updatedAt = new Date();
 
         return note;
@@ -381,6 +383,15 @@ describe('Notes Routes', () => {
 
             expect(response.status).toBe(201);
             expect(response.body.category).toBe('Work');
+        });
+
+        test('should create a note with normalized tags', async () => {
+            const response = await request(app)
+                .post('/api/notes')
+                .send({ title: 'Tagged', content: 'Content', tags: [' Work ', 'work', 'Personal'] });
+
+            expect(response.status).toBe(201);
+            expect(response.body.tags).toEqual(['Work', 'Personal']);
         });
         test('should create a new note', async () => {
             const noteData = { title: 'New Note', content: 'New Content' };

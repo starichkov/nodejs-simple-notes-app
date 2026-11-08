@@ -20,6 +20,7 @@ A RESTful API for managing text notes, built with Node.js, Express, and NoSQL da
 - **Recycle bin functionality** - Move notes to recycle bin instead of immediate deletion
 - **Restore notes** from recycle bin or permanently delete them
 - Search active notes by title or content
+- Organize notes with normalized multiple tags and categories
 - RESTful API design
 - Simple and intuitive web UI with tabs for Notes and Recycle Bin
 - Database-agnostic architecture
@@ -271,6 +272,7 @@ The response uses a pagination envelope:
       "title": "Sample Note",
       "content": "Note content",
       "category": null,
+      "tags": [],
       "deletedAt": null,
       "createdAt": "2023-01-01T00:00:00.000Z",
       "updatedAt": "2023-01-02T00:00:00.000Z"
@@ -323,7 +325,7 @@ Content-Type: application/json
 }
 ```
 
-Both create and update requests use the same schema: `title` and `content` are required strings, must not be blank, and may contain at most 200 and 10,000 characters respectively. The optional `category` is trimmed, may be `null`, and may contain at most 100 characters. Invalid types, blank values, or over-limit values return `400` and do not call the repository. Responses always include `category`, using `null` when it is omitted.
+Both create and update requests use the same schema: `title` and `content` are required strings, must not be blank, and may contain at most 200 and 10,000 characters respectively. The optional `category` is trimmed, may be `null`, and may contain at most 100 characters. The optional `tags` array trims values, discards blanks, deduplicates case-insensitively while preserving first spelling, and supports up to 20 tags of 50 characters each and 500 aggregate characters. Omitted, `null`, and empty tags become `[]`. Invalid types, blank values, or over-limit values return `400` and do not call the repository. Responses always include `category` and `tags`.
 
 ### Update a note
 ```
@@ -333,9 +335,24 @@ Content-Type: application/json
 {
   "title": "Updated Title",
   "content": "Updated content",
-  "category": "Personal"
+  "category": "Personal",
+  "tags": ["project", "review"]
 }
 ```
+
+### List active tags
+```
+GET /api/tags
+```
+
+Returns unique tags used by active notes in deterministic alphabetical order. Tags on deleted notes are excluded.
+
+### Get active notes by tag
+```
+GET /api/tags/:tag/notes?limit=20&offset=0
+```
+
+Tag matching is case-insensitive and uses the standard pagination envelope with `data` and `pagination` fields. Blank tags and invalid pagination values return `400`; repository failures return `500`.
 
 ### Move a note to recycle bin (soft delete)
 ```

@@ -30,6 +30,7 @@ COPY --chown=node:node src/routes ./routes
 COPY --chown=node:node src/errors ./errors
 COPY --chown=node:node src/middleware ./middleware
 COPY --chown=node:node src/validation ./validation
+COPY --chown=node:node src/services ./services
 
 # Drop privileges to non-root user provided by the Node image
 USER node

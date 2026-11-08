@@ -63,6 +63,9 @@ export class CouchDbNoteRepository extends NoteRepository {
                     active: {
                         map: "function(doc) { if (doc.type === 'note' && doc.deletedAt === null) { emit([doc.updatedAt, doc._id], null); } }",
                     },
+                    tags: {
+                        map: "function(doc) { if (doc.type === 'note' && doc.deletedAt === null && Array.isArray(doc.tags)) { doc.tags.forEach(function(tag) { emit([tag.toLowerCase(), doc.updatedAt, doc._id], null); }); } }",
+                    },
                     deleted: {
                         map: "function(doc) { if (doc.type === 'note' && doc.deletedAt !== null) { emit(doc.deletedAt, null); } }",
                     },
@@ -77,6 +80,7 @@ export class CouchDbNoteRepository extends NoteRepository {
                     existingDoc.views &&
                     existingDoc.views.all &&
                     existingDoc.views.active &&
+                    existingDoc.views.tags &&
                     existingDoc.views.deleted &&
                     existingDoc.views.active.map === expectedDesignDoc.views.active.map;
 
@@ -129,6 +133,42 @@ export class CouchDbNoteRepository extends NoteRepository {
             console.error('Failed to find all active notes:', error);
             throw error;
         }
+    }
+
+    /**
+     * Find unique tags on active notes.
+     * @returns {Promise<string[]>} Active tag spellings
+     * @throws {Error} When the view query fails
+     */
+    async findTags() {
+        const result = await this.db.view('notes', 'tags', { include_docs: true });
+        return [...new Set(result.rows.flatMap((row) => row.doc?.tags ?? []))];
+    }
+
+    /**
+     * Find active notes matching a tag using the tag view.
+     * @param {string} tag - Case-insensitive tag value
+     * @param {{limit: number, offset: number}} options - Pagination options
+     * @returns {Promise<{notes: Note[], total: number}>} Matching page and total
+     * @throws {Error} When the view query fails
+     */
+    async findAllByTag(tag, options) {
+        const key = tag.toLocaleLowerCase();
+        const query = {
+            startkey: [key, {}, {}],
+            endkey: [key],
+            descending: true,
+        };
+        const [result, countResult] = await Promise.all([
+            this.db.view('notes', 'tags', {
+                ...query,
+                include_docs: true,
+                skip: options.offset,
+                limit: options.limit,
+            }),
+            this.db.view('notes', 'tags', { ...query, include_docs: false }),
+        ]);
+        return { notes: this._mapResult(result), total: countResult.rows?.length ?? 0 };
     }
 
     /**
@@ -215,6 +255,7 @@ export class CouchDbNoteRepository extends NoteRepository {
                 title: doc.title,
                 content: doc.content,
                 category: doc.category,
+                tags: doc.tags,
                 deletedAt: doc.deletedAt ? new Date(doc.deletedAt) : null,
                 createdAt: new Date(doc.createdAt),
                 updatedAt: new Date(doc.updatedAt),
@@ -234,6 +275,7 @@ export class CouchDbNoteRepository extends NoteRepository {
      * @param {string} note.title - The title of the note
      * @param {string} note.content - The content of the note
      * @param {string|null} [note.category] - Optional category for the note
+     * @param {string[]} [note.tags] - Optional tags for the note
      * @returns {Promise<Note>} Promise resolving to the created Note object with assigned ID
      * @throws {Error} When note creation fails or database is unreachable
      * @example
@@ -251,6 +293,7 @@ export class CouchDbNoteRepository extends NoteRepository {
                 title: note.title,
                 content: note.content,
                 category: note.category ?? null,
+                tags: note.tags ?? [],
                 deletedAt: null,
                 createdAt: now.toISOString(),
                 updatedAt: now.toISOString(),
@@ -263,6 +306,7 @@ export class CouchDbNoteRepository extends NoteRepository {
                 title: doc.title,
                 content: doc.content,
                 category: doc.category,
+                tags: doc.tags,
                 deletedAt: doc.deletedAt,
                 createdAt: new Date(doc.createdAt),
                 updatedAt: new Date(doc.updatedAt),
@@ -280,6 +324,7 @@ export class CouchDbNoteRepository extends NoteRepository {
      * @param {string} note.title - The updated title of the note
      * @param {string} note.content - The updated content of the note
      * @param {string|null} [note.category] - Optional category for the note
+     * @param {string[]} [note.tags] - Optional tags for the note
      * @returns {Promise<Note|null>} Promise resolving to the updated Note object or null if not found
      * @throws {Error} When update fails due to database issues
      * @throws {Error} When document was modified concurrently (409 conflict)
@@ -317,6 +362,7 @@ export class CouchDbNoteRepository extends NoteRepository {
                 title: note.title,
                 content: note.content,
                 category: note.category ?? null,
+                tags: note.tags ?? [],
                 deletedAt: currentDoc.deletedAt || null,
                 createdAt: currentDoc.createdAt,
                 updatedAt: now.toISOString(),
@@ -329,6 +375,7 @@ export class CouchDbNoteRepository extends NoteRepository {
                 title: note.title,
                 content: note.content,
                 category: updatedDoc.category,
+                tags: updatedDoc.tags,
                 deletedAt: updatedDoc.deletedAt ? new Date(updatedDoc.deletedAt) : null,
                 createdAt: new Date(currentDoc.createdAt),
                 updatedAt: new Date(updatedDoc.updatedAt),
@@ -562,6 +609,7 @@ export class CouchDbNoteRepository extends NoteRepository {
                     title: doc.title,
                     content: doc.content,
                     category: doc.category,
+                    tags: doc.tags,
                     deletedAt: doc.deletedAt ? new Date(doc.deletedAt) : null,
                     createdAt: new Date(doc.createdAt),
                     updatedAt: new Date(doc.updatedAt),

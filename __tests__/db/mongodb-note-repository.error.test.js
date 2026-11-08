@@ -68,11 +68,45 @@ describe('MongoDbNoteRepository Error Handling Tests', () => {
                 findByIdAndDelete: jest.fn(),
                 deleteMany: jest.fn(),
                 countDocuments: jest.fn(),
+                distinct: jest.fn(),
                 save: jest.fn(),
             };
         });
 
         describe('findAll() error handling', () => {
+            test('discovers active tags and finds a paginated tag page', async () => {
+                repository.NoteModel.distinct.mockResolvedValue(['Work', 'Personal']);
+                const documents = [
+                    {
+                        _id: { toString: () => 'note-1' },
+                        title: 'Tagged',
+                        content: 'Content',
+                        tags: ['Work'],
+                        deletedAt: null,
+                        createdAt: new Date(),
+                        updatedAt: new Date(),
+                    },
+                ];
+                const limit = jest.fn().mockResolvedValue(documents);
+                const skip = jest.fn().mockReturnValue({ limit });
+                const sort = jest.fn().mockReturnValue({ skip });
+                repository.NoteModel.countDocuments.mockResolvedValue(1);
+                repository.NoteModel.find.mockReturnValue({ sort });
+
+                await expect(repository.findTags()).resolves.toEqual(['Work', 'Personal']);
+                const result = await repository.findAllByTag('Work', { limit: 1, offset: 2 });
+
+                expect(repository.NoteModel.distinct).toHaveBeenCalledWith('tags', { deletedAt: null });
+                expect(repository.NoteModel.countDocuments).toHaveBeenCalledWith({
+                    deletedAt: null,
+                    tags: { $regex: '^Work$', $options: 'i' },
+                });
+                expect(sort).toHaveBeenCalledWith({ updatedAt: -1, _id: -1 });
+                expect(skip).toHaveBeenCalledWith(2);
+                expect(limit).toHaveBeenCalledWith(1);
+                expect(result.total).toBe(1);
+                expect(result.notes[0].tags).toEqual(['Work']);
+            });
             test('should count and retrieve a bounded active-note page', async () => {
                 const documents = [
                     {

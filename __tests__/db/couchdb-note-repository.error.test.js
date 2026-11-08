@@ -111,6 +111,48 @@ describe('CouchDbNoteRepository Error Handling Tests', () => {
     });
 
     describe('_mapResult() method edge cases', () => {
+        it('discovers and paginates active tags', async () => {
+            repository.db.view
+                .mockResolvedValueOnce({ rows: [{ doc: { tags: ['Work', 'Personal'] } }, { doc: { tags: ['Work'] } }] })
+                .mockResolvedValueOnce({
+                    total_rows: 1,
+                    rows: [
+                        {
+                            doc: {
+                                _id: 'note1',
+                                title: 'Tagged',
+                                content: 'Content',
+                                tags: ['Work'],
+                                deletedAt: null,
+                                createdAt: new Date().toISOString(),
+                                updatedAt: new Date().toISOString(),
+                            },
+                        },
+                    ],
+                })
+                .mockResolvedValueOnce({ rows: [{}] });
+
+            await expect(repository.findTags()).resolves.toEqual(['Work', 'Personal']);
+            const result = await repository.findAllByTag('Work', { limit: 1, offset: 2 });
+
+            expect(repository.db.view).toHaveBeenNthCalledWith(1, 'notes', 'tags', { include_docs: true });
+            expect(repository.db.view).toHaveBeenNthCalledWith(2, 'notes', 'tags', {
+                startkey: ['work', {}, {}],
+                endkey: ['work'],
+                descending: true,
+                include_docs: true,
+                skip: 2,
+                limit: 1,
+            });
+            expect(repository.db.view).toHaveBeenNthCalledWith(3, 'notes', 'tags', {
+                startkey: ['work', {}, {}],
+                endkey: ['work'],
+                descending: true,
+                include_docs: false,
+            });
+            expect(result.total).toBe(1);
+            expect(result.notes[0].tags).toEqual(['Work']);
+        });
         it('should handle null result', async () => {
             const result = repository._mapResult(null);
             expect(result).toEqual([]);

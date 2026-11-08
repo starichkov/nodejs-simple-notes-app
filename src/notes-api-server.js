@@ -7,6 +7,8 @@ import { fileURLToPath } from 'url';
 import { CouchDbNoteRepository } from './db/couchdb-note-repository.js';
 import { MongoDbNoteRepository } from './db/mongodb-note-repository.js';
 import { createNotesRouter } from './routes/notes-routes.js';
+import { createTagsRouter } from './routes/tags-routes.js';
+import { TagService } from './services/tag-service.js';
 import { createLogger } from './logger.js';
 import { errorHandler } from './middleware/error-handler.js';
 import { NotFoundError } from './errors/app-error.js';
@@ -173,6 +175,7 @@ export class NotesServer {
             // Create and mount the notes router
             const notesRouter = createNotesRouter(repository);
             this.app.use('/api/notes', notesRouter);
+            this.app.use('/api/tags', createTagsRouter(new TagService(repository)));
 
             // Add a simple health check endpoint
             this.app.get('/health', (req, res) => {

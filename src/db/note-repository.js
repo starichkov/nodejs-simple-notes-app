@@ -22,6 +22,24 @@ export class NoteRepository {
     }
 
     /**
+     * Find unique tags used by active notes.
+     * @returns {Promise<string[]>} Active tags
+     */
+    async findTags() {
+        throw new Error('Method not implemented');
+    }
+
+    /**
+     * Find a paginated page of active notes carrying a tag.
+     * @param {string} tag - Case-insensitive tag value
+     * @param {{limit: number, offset: number}} options - Pagination options
+     * @returns {Promise<{notes: Array, total: number}>} Matching notes and total
+     */
+    async findAllByTag(tag, options) {
+        throw new Error('Method not implemented');
+    }
+
+    /**
      * Find all deleted notes (in recycle bin)
      * @returns {Promise<Array>} Promise resolving to an array of deleted Note objects
      */
@@ -50,6 +68,7 @@ export class NoteRepository {
      * Create a new note
      * @param {Object} note - The note to create
      * @param {string|null} [note.category] - Optional note category
+     * @param {string[]} [note.tags] - Optional normalized note tags
      * @returns {Promise<Object>} Promise resolving to the created Note object
      */
     async create(note) {
@@ -61,6 +80,7 @@ export class NoteRepository {
      * @param {string} id - The ID of the note to update
      * @param {Object} note - The updated note data
      * @param {string|null} [note.category] - Optional note category
+     * @param {string[]} [note.tags] - Optional normalized note tags
      * @returns {Promise<Object|null>} Promise resolving to the updated Note object or null if not found
      */
     async update(id, note) {

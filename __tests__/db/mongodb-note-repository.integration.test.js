@@ -196,6 +196,24 @@ describe('MongoDbNoteRepository Integration Tests', () => {
         });
     });
 
+    describe('Tag Operations', () => {
+        it('discovers active tags and excludes deleted notes from matching pages', async () => {
+            const active = await repository.create({
+                title: 'Active tagged',
+                content: 'Content',
+                tags: ['Work', 'Personal'],
+            });
+            const deleted = await repository.create({ title: 'Deleted tagged', content: 'Content', tags: ['Work'] });
+            await repository.moveToRecycleBin(deleted.id);
+
+            await expect(repository.findTags()).resolves.toEqual(expect.arrayContaining(['Work', 'Personal']));
+            const result = await repository.findAllByTag('work', { limit: 20, offset: 0 });
+
+            expect(result.total).toBe(1);
+            expect(result.notes.map((note) => note.id)).toEqual([active.id]);
+        });
+    });
+
     describe('Error Handling Coverage', () => {
         it('should handle CastError in update with invalid ObjectId', async () => {
             const invalidId = 'invalid-object-id-format';
