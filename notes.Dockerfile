@@ -27,6 +27,8 @@ COPY --chown=node:node src/public ./public
 COPY --chown=node:node src/db ./db
 COPY --chown=node:node src/models ./models
 COPY --chown=node:node src/routes ./routes
+COPY --chown=node:node src/errors ./errors
+COPY --chown=node:node src/middleware ./middleware
 
 # Drop privileges to non-root user provided by the Node image
 USER node
